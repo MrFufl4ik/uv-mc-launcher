@@ -1,0 +1,28 @@
+{
+  "name": "croakfront",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "@types/cli-progress": "^3.11.6",
+    "@types/node": "^26.6.2",
+    "@types/proper-lockfile": "^4.1.4",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "cli-progress": "^3.12.0",
+    "isomorphic-git": "^1.42.2",
+    "proper-lockfile": "^4.1.2",
+    "tar": "^7.5.22"
+  }
+}
