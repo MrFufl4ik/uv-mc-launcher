@@ -3,3 +3,8 @@
 /.lock
 /old_install.sh
 /old_run.sh
+/launcher/
+/node/
+/client/
+/node_modules/
+/tmp/
