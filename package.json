@@ -23,6 +23,8 @@
     "cli-progress": "^3.12.0",
     "isomorphic-git": "^1.42.2",
     "proper-lockfile": "^4.1.2",
-    "tar": "^7.5.22"
+    "tar": "^7.5.22",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
   }
 }

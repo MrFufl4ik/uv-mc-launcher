@@ -10,10 +10,11 @@ import {
 } from "./utils.js";
 import {SMSimpleStatus, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";
+import {Config} from "./config.js";
 
 export let launcherConfig = {
     path: path.join(process.cwd(), "launcher"),
-    tarballUrl: new URL("https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz"),
+    tarballUrl: new URL(Config.launcher.tarballUrl),
     tarballFileName: "launcher.tar.gz",
     defaultConfigsPath: path.join(process.cwd(), "default-launcher-configs")
 };
