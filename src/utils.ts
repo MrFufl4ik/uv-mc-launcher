@@ -2,11 +2,12 @@ import * as tar from "tar";
 import {pipeline} from "node:stream/promises";
 import {Readable, Transform} from "node:stream";
 import {createWriteStream} from "node:fs";
-import {stat} from "node:fs/promises";
+import {readdir, rm, stat} from "node:fs/promises";
 import fs from "fs/promises";
 import * as cliProgress from "cli-progress";
 import os from "node:os";
 import {execFile} from "node:child_process";
+import path from "node:path";
 
 
 export const ConsoleOpts = {
@@ -100,6 +101,19 @@ export async function extractTarball(tarballPath: string, cwd: string) {
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
+export async function isValidTarball(tarballPath: string) {
+    if (!await isFileExists(tarballPath)) return false;
+    try {
+        await tar.t({
+            file: tarballPath,
+            gzip: true
+        });
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export async function isDirectoryExists(path: string): Promise<boolean> {
     try {
         return (await stat(path)).isDirectory();
@@ -117,6 +131,19 @@ export async function isFileExists(path: string): Promise<boolean> {
     }
 }
 
+export async function isDirectoryEmpty(path: string) {
+    const files = await readdir(path);
+    return files.length === 0;
+}
+
+export async function cleanDirectory(directoryPath: string) {
+    const files = await readdir(directoryPath);
+    for (const file of files) {
+        const filePath = path.join(directoryPath, file);
+        await rm(filePath, {recursive: true, force: true});
+    }
+}
+
 interface RetryOptions {
     attempts?: number;
     delay?: number;
@@ -131,12 +158,12 @@ export async function asyncRetryWrapper<T>(
         shouldRetryError = () => true
     }: RetryOptions = {}
 ) {
-    for (let attempt = 0; attempt <= attempts; attempt++) {
+    for (let attempt = 0; attempt < attempts; attempt++) {
         try {
             return await fn();
         } catch (error) {
             if (error instanceof Error) {
-                if (attempt === attempts || !shouldRetryError(error)) {
+                if (attempt === attempts - 1 || !shouldRetryError(error)) {
                     throw error;
                 }
             }
@@ -146,7 +173,7 @@ export async function asyncRetryWrapper<T>(
     throw new Error(`${attempts} retry attempts on ${fn.name} function didn't yield results`);
 }
 
-export function hideFileOnWindows(filePath: string){
+export function hideFileOnWindows(filePath: string) {
     if (os.platform() == "win32") {
         execFile("attrib", ["+H", filePath]);
     }

@@ -1,8 +1,6 @@
 import fs from "fs/promises";
 import * as Path from "node:path";
-import {isFileExists} from "./utils.js";
-import * as os from "node:os";
-import {execFile} from "node:child_process";
+import {hideFileOnWindows, isFileExists} from "./utils.js";
 import {rm} from "node:fs/promises";
 
 export class StateMachine {
@@ -42,9 +40,7 @@ export class StateMachine {
         );
         await fs.rename(atomicJsonFilePath, jsonFilePath);
 
-        if (os.platform() == "win32") {
-            execFile("attrib", ["+H", jsonFilePath]);
-        }
+        hideFileOnWindows(jsonFilePath)
 
         return resultData;
     }

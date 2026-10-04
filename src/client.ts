@@ -4,11 +4,12 @@ import fs from "fs";
 import path from "node:path";
 import {isDirectoryExists, asyncRetryWrapper, ConsoleOpts, createProgressBar} from "./utils.js";
 import http from "isomorphic-git/http/node";
-import {SMSimpleStatus, SMSimpleStringVar, StateMachine} from "./statemachine.js";
+import {SMSimpleStringVar, StateMachine} from "./statemachine.js";
 import type {SingleBar} from "cli-progress";
+import {gameConfig} from "./game.js";
 
 let clientConfig = {
-    path: path.join(process.cwd(), "client"),
+    path: path.join(process.cwd(), gameConfig.clientName),
     gitBranch: "main",
     gitRemote: "origin",
     gitUserName: "rockrezator",
@@ -32,8 +33,6 @@ const enum InitStatus {
 }
 
 async function initClient() {
-    console.log("Initialising client");
-
     const initStatus = new SMSimpleStringVar(clientStateMachine, "initStatus", InitStatus.creatingDir);
 
     if (!await isDirectoryExists(clientConfig.path)) {
@@ -44,8 +43,11 @@ async function initClient() {
         await rm(path.join(clientConfig.path, ".git"));
         await initStatus.writeValue(InitStatus.gitInit);
     } else if (await initStatus.readValue() === InitStatus.fullyInit){
+        console.log("Client already initialising. Skipping");
         return
     }
+
+    console.log("Initialising client");
 
     if (await initStatus.readValue() === InitStatus.creatingDir) {
         await mkdir(clientConfig.path, {recursive: false});
@@ -185,7 +187,7 @@ async function updateClient() {
 
         if (localHead === remoteHead) {
             console.log("Client is already up to date");
-            await updateStatus.writeValue(UpdateStatus.idle);
+            await updateStatus.resetValue();
             return;
         }
 
@@ -206,7 +208,7 @@ async function updateClient() {
             `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
         );
         await gitSyncLocalBranchWithRemote(clientConfig.path, branch, localRef, remoteHead);
-        await updateStatus.writeValue(UpdateStatus.idle);
+        await updateStatus.resetValue();
     }
 }
 

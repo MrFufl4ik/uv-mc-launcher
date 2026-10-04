@@ -4,10 +4,12 @@ import {writeFile} from "node:fs/promises";
 import path from "node:path";
 import lockfile from 'proper-lockfile';
 import {hideFileOnWindows} from "./utils.js";
+import {gameEntry} from "./game.js";
 
 async function main() {
     await launcherEntry()
     await clientEntry();
+    await gameEntry();
 }
 
 async function mainWithLock(){
