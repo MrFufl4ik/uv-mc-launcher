@@ -6,22 +6,46 @@ import {isDirectoryExists, asyncRetryWrapper, ConsoleOpts, createProgressBar} fr
 import http from "isomorphic-git/http/node";
 import {SMSimpleStringVar, StateMachine} from "./statemachine.js";
 import type {SingleBar} from "cli-progress";
-import {gameConfig} from "./game.js";
+import * as MainConfig from "./main-config.js";
 
-let clientConfig = {
-    path: path.join(process.cwd(), gameConfig.clientName),
-    gitBranch: "main",
-    gitRemote: "origin",
-    gitUserName: "rockrezator",
-    gitAuthKey: "e9646ad8ecb4ada84d6c02c064cab70513d46bd5",
-    gitRepository: "https://git.croakland.ru/mrfufl4ik/croakfront-client.git"
-};
+type GitConfig = {
+    repository: string,
+    branch: string,
+    remote: string,
+    userName: string,
+    authKey: string,
+}
 
 const clientStateMachine = new StateMachine("client");
 
+const mainConfig = await MainConfig.get();
+function getClientByClientId(clientId: string){
+    for (const client of mainConfig.clients){
+        if (client.id == clientId) return client;
+    }
+    return null;
+}
+
 export async function clientEntry() {
-    await initClient();
-    await updateClient();
+    const clientId = mainConfig.run.clientId;
+    const client = getClientByClientId(clientId)
+    if (client === null){
+        console.log(`Client '${clientId}' not found in config!`)
+        process.exit(880001)
+    }
+    if (client.git === undefined){
+        console.log(`Git not configured for client`)
+        return
+    }
+    const gitConfig: GitConfig = {
+        repository: client.git.httpUrl,
+        branch: client.git.branch,
+        remote: client.git.remote,
+        userName: client.git.userName,
+        authKey: client.git.authKey,
+    }
+    await initGitClient(client.id, gitConfig);
+    await updateClient(client.id, gitConfig);
 }
 
 const enum InitStatus {
@@ -32,15 +56,20 @@ const enum InitStatus {
     fullyInit = "fully init"
 }
 
-async function initClient() {
-    const initStatus = new SMSimpleStringVar(clientStateMachine, "initStatus", InitStatus.creatingDir);
+async function initGitClient(clientId: string, gitConfig: GitConfig) {
+    const initStatus = new SMSimpleStringVar(
+        clientStateMachine,
+        `${clientId}-initGitStatus`,
+        InitStatus.creatingDir
+    );
+    const clientPath = path.join(process.cwd(), clientId)
 
-    if (!await isDirectoryExists(clientConfig.path)) {
+    if (!await isDirectoryExists(clientPath)) {
         await initStatus.resetValue();
-    } else if (!await isDirectoryExists(path.join(clientConfig.path, ".git"))) {
+    } else if (!await isDirectoryExists(path.join(clientPath, ".git"))) {
         await initStatus.writeValue(InitStatus.gitInit);
     } else if (await initStatus.readValue() === InitStatus.gitInitStart) {
-        await rm(path.join(clientConfig.path, ".git"));
+        await rm(path.join(clientPath, ".git"));
         await initStatus.writeValue(InitStatus.gitInit);
     } else if (await initStatus.readValue() === InitStatus.fullyInit){
         console.log("Client already initialising. Skipping");
@@ -50,22 +79,22 @@ async function initClient() {
     console.log("Initialising client");
 
     if (await initStatus.readValue() === InitStatus.creatingDir) {
-        await mkdir(clientConfig.path, {recursive: false});
+        await mkdir(clientPath, {recursive: false});
         await initStatus.writeValue(InitStatus.gitInit);
     }
     if (await initStatus.readValue() === InitStatus.gitInit) {
         await initStatus.writeValue(InitStatus.gitInitStart);
-        console.log("Initialising git repository");
+        console.log("Initialising client git repository");
         await git.init({
             fs: fs,
-            dir: clientConfig.path,
-            defaultBranch: clientConfig.gitBranch
+            dir: clientPath,
+            defaultBranch: gitConfig.branch
         });
         await git.addRemote({
             fs: fs,
-            dir: clientConfig.path,
-            url: clientConfig.gitRepository,
-            remote: clientConfig.gitRemote
+            dir: clientPath,
+            url: gitConfig.repository,
+            remote: gitConfig.remote
         });
         console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
         await initStatus.writeValue(InitStatus.gitInitEnd);
@@ -95,6 +124,7 @@ function isTimeoutError(error: Error): boolean {
 }
 
 async function gitSyncLocalBranchWithRemote(
+    clientId: string,
     dir: string,
     branch: string,
     localRef: string, remoteHead: string
@@ -105,7 +135,11 @@ async function gitSyncLocalBranchWithRemote(
         checkout = "checkout"
     }
 
-    const gitSyncStatus = new SMSimpleStringVar(clientStateMachine, "gitSyncStatus", SyncStatus.idle);
+    const gitSyncStatus = new SMSimpleStringVar(
+        clientStateMachine,
+        `${clientId}-gitSyncStatus`,
+        SyncStatus.idle
+    );
     if (await gitSyncStatus.readValue() == SyncStatus.idle) {
         await gitSyncStatus.writeValue(SyncStatus.writeRef);
     }
@@ -146,7 +180,7 @@ async function gitSyncLocalBranchWithRemote(
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
-async function updateClient() {
+async function updateClient(clientId: string, gitConfig: GitConfig) {
     console.log("Check client for update");
 
     const enum UpdateStatus {
@@ -155,27 +189,29 @@ async function updateClient() {
         checkout = "checkout"
     }
 
-    const updateStatus = new SMSimpleStringVar(clientStateMachine, "updateStatus", UpdateStatus.idle);
-    const updateTarget = new SMSimpleStringVar(clientStateMachine, "updateTarget", "");
+    const clientPath = path.join(process.cwd(), clientId)
+
+    const updateStatus = new SMSimpleStringVar(clientStateMachine, `${clientId}-updateStatus`, UpdateStatus.idle);
+    const updateTarget = new SMSimpleStringVar(clientStateMachine, `${clientId}-updateTarget`, "");
 
     if (await updateStatus.readValue() === UpdateStatus.idle){
         await updateStatus.writeValue(UpdateStatus.fetch);
     }
 
-    const branch = clientConfig.gitBranch;
+    const branch = gitConfig.branch;
     const remoteRef = `refs/remotes/origin/${branch}`;
     const localRef  = `refs/heads/${branch}`;
 
     const resolveRef = (ref: string) =>
-        git.resolveRef({fs: fs, dir: clientConfig.path, ref: ref}).catch(() => null);
+        git.resolveRef({fs: fs, dir: clientPath, ref: ref}).catch(() => null);
 
     if (await updateStatus.readValue() === UpdateStatus.fetch){
         await asyncRetryWrapper(() => git.fetch({
             fs: fs, http: http,
-            dir: clientConfig.path,
+            dir: clientPath,
             onAuth: () => ({
-                username: clientConfig.gitUserName,
-                password: clientConfig.gitAuthKey
+                username: gitConfig.userName,
+                password: gitConfig.authKey
             }),
             ref: branch,
             singleBranch: true
@@ -207,7 +243,7 @@ async function updateClient() {
             " -> " +
             `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
         );
-        await gitSyncLocalBranchWithRemote(clientConfig.path, branch, localRef, remoteHead);
+        await gitSyncLocalBranchWithRemote(clientId, clientPath, branch, localRef, remoteHead);
         await updateStatus.resetValue();
     }
 }

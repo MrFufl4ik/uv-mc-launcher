@@ -10,11 +10,13 @@ import {
 } from "./utils.js";
 import {SMSimpleStatus, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";
-import {Config} from "./config.js";
+import * as MainConfig from "./main-config.js";
+
+const mainConfig = await MainConfig.get();
 
 export let launcherConfig = {
     path: path.join(process.cwd(), "launcher"),
-    tarballUrl: new URL(Config.launcher.tarballUrl),
+    tarballUrl: new URL(mainConfig.launcher.tarballUrl),
     tarballFileName: "launcher.tar.gz",
     defaultConfigsPath: path.join(process.cwd(), "default-launcher-configs")
 };
