@@ -1,4 +1,4 @@
-import {cp, mkdir, rm} from "node:fs/promises";
+import {cp, mkdir, rm, rmdir} from "node:fs/promises";
 import path from "node:path";
 import {
     isDirectoryExists,
@@ -35,6 +35,7 @@ const enum LauncherStatus {
 export async function launcherEntry() {
     await installLauncher();
 }
+
 function isNetworkError(error: Error): boolean {
     const NetworkErrors = [
         "UND_ERR_CONNECT_TIMEOUT",
@@ -44,8 +45,7 @@ function isNetworkError(error: Error): boolean {
         return (
             NetworkErrors.includes(error.code)
         );
-    }
-    else if ("cause" in error && error.cause instanceof Error) {
+    } else if ("cause" in error && error.cause instanceof Error) {
         const cause = error.cause as Error & { code?: string };
         if (typeof cause.code === "string") {
             return (
@@ -63,16 +63,19 @@ async function installLauncher() {
     const launcherPath = launcherConfig.path;
     if (!await isDirectoryExists(launcherPath)) {
         await launcherStatus.resetStatus();
-    } else if (await launcherStatus.readStatus() === LauncherStatus.fullyInstalled){
+    } else if (await launcherStatus.readStatus() === LauncherStatus.fullyInstalled) {
         console.log("Launcher already installed. Skipping");
         return;
     }
 
     console.log("Installing launcher");
 
-
     while (true) {
         if (await launcherStatus.readStatus() === LauncherStatus.creatingDir) {
+            //cleanup
+            if (await isDirectoryExists(launcherPath)) {
+                await rmdir(launcherPath);
+            }
             await mkdir(launcherPath, {recursive: false});
             await launcherStatus.writeStatus(LauncherStatus.tarballDownloading);
         }

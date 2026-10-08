@@ -48,7 +48,7 @@ export async function clientEntry() {
     await updateClient(client.id, gitConfig);
 }
 
-const enum InitStatus {
+const enum GitInitStatus {
     creatingDir = "creating dir",
     gitInit = "git init",
     gitInitStart = "git init start",
@@ -60,30 +60,30 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
     const initStatus = new SMSimpleStringVar(
         clientStateMachine,
         `${clientId}-initGitStatus`,
-        InitStatus.creatingDir
+        GitInitStatus.creatingDir
     );
     const clientPath = path.join(process.cwd(), clientId)
 
     if (!await isDirectoryExists(clientPath)) {
         await initStatus.resetValue();
     } else if (!await isDirectoryExists(path.join(clientPath, ".git"))) {
-        await initStatus.writeValue(InitStatus.gitInit);
-    } else if (await initStatus.readValue() === InitStatus.gitInitStart) {
+        await initStatus.writeValue(GitInitStatus.gitInit);
+    } else if (await initStatus.readValue() === GitInitStatus.gitInitStart) {
         await rm(path.join(clientPath, ".git"));
-        await initStatus.writeValue(InitStatus.gitInit);
-    } else if (await initStatus.readValue() === InitStatus.fullyInit){
+        await initStatus.writeValue(GitInitStatus.gitInit);
+    } else if (await initStatus.readValue() === GitInitStatus.fullyInit){
         console.log("Client already initialising. Skipping");
         return
     }
 
     console.log("Initialising client");
 
-    if (await initStatus.readValue() === InitStatus.creatingDir) {
+    if (await initStatus.readValue() === GitInitStatus.creatingDir) {
         await mkdir(clientPath, {recursive: false});
-        await initStatus.writeValue(InitStatus.gitInit);
+        await initStatus.writeValue(GitInitStatus.gitInit);
     }
-    if (await initStatus.readValue() === InitStatus.gitInit) {
-        await initStatus.writeValue(InitStatus.gitInitStart);
+    if (await initStatus.readValue() === GitInitStatus.gitInit) {
+        await initStatus.writeValue(GitInitStatus.gitInitStart);
         console.log("Initialising client git repository");
         await git.init({
             fs: fs,
@@ -97,10 +97,10 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
             remote: gitConfig.remote
         });
         console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-        await initStatus.writeValue(InitStatus.gitInitEnd);
+        await initStatus.writeValue(GitInitStatus.gitInitEnd);
     }
-    if (await initStatus.readValue() === InitStatus.gitInitEnd) {
-        await initStatus.writeValue(InitStatus.fullyInit);
+    if (await initStatus.readValue() === GitInitStatus.gitInitEnd) {
+        await initStatus.writeValue(GitInitStatus.fullyInit);
     }
 }
 
