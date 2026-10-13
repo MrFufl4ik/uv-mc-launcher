@@ -14,16 +14,29 @@ export class StateMachine {
         return Path.join(process.cwd(), `.${this.name.toLowerCase()}-state.json`);
     }
 
+    private deepMerge(target: any, source: any): JSON {
+        const result = {...target};
+        for (const key in source) {
+            if (
+                source[key] &&
+                typeof source[key] === "object" &&
+                !Array.isArray(source[key])
+            ) {
+                result[key] = this.deepMerge(target[key] || {}, source[key]);
+            } else {
+                result[key] = source[key];
+            }
+        }
+        return result;
+    }
+
     async writeState(data: JSON): Promise<JSON> {
-        let resultData: JSON | undefined;
+        let resultData: JSON;
         const jsonFilePath = await this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
                 const oldData: JSON = JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
-                resultData = {
-                    ...oldData,
-                    ...data
-                };
+                resultData = this.deepMerge(oldData, data);
             } catch {
                 console.log(`Json data in ${jsonFilePath} is broken`);
                 fs.rm(jsonFilePath, {force: true, recursive: false});
@@ -40,7 +53,7 @@ export class StateMachine {
         );
         await fs.rename(atomicJsonFilePath, jsonFilePath);
 
-        hideFileOnWindows(jsonFilePath)
+        hideFileOnWindows(jsonFilePath);
 
         return resultData;
     }
@@ -62,68 +75,79 @@ export class StateMachine {
     }
 }
 
-export class SMSimpleStatus {
-    private stateMachine: StateMachine;
-    private readonly defaultStatus: string;
+export class SMSimpleVar<T extends string | number | boolean> {
+    protected stateMachine: StateMachine;
+    protected readonly valueName: string;
+    protected readonly defaultValue: T;
 
-    constructor(stateMachine: StateMachine, defaultStatus: string) {
+    constructor(stateMachine: StateMachine, valueName: string, defaultValue: T) {
         this.stateMachine = stateMachine;
-        this.defaultStatus = defaultStatus;
-    }
-
-    buildStatusJson(status: string) {
-        return `{"status": "${status}"}`;
-    }
-
-    async writeStatus(status: string): Promise<void> {
-        await this.stateMachine.writeState(JSON.parse(this.buildStatusJson(status)));
-    }
-
-    async readStatus(): Promise<string> {
-        const state = await this.stateMachine.readState();
-        if (
-            state != undefined &&
-            "status" in state &&
-            typeof state.status === "string"
-        ) {
-            return state.status;
-        }
-        return this.defaultStatus;
-    }
-
-    async resetStatus(): Promise<void> {
-        await this.stateMachine.writeState(JSON.parse(this.buildStatusJson(this.defaultStatus)));
-    }
-}
-
-export class SMSimpleStringVar {
-    private stateMachine: StateMachine;
-    private readonly varName: string;
-    private readonly defaultValue: string;
-
-    constructor(stateMachine: StateMachine, varName: string, defaultValue: string) {
-        this.stateMachine = stateMachine;
+        this.valueName = valueName;
         this.defaultValue = defaultValue;
-        this.varName = varName;
     }
 
-    buildVarJson(value: string) {
-        return `{"${this.varName}": "${value}"}`;
+    buildJson(value: T): string {
+        switch (typeof value) {
+            case "string":
+                return `{"${this.valueName}":"${value}"}`;
+            default:
+                return `{"${this.valueName}":${value}}`;
+        }
     }
 
-    async writeValue(value: string): Promise<void> {
-        await this.stateMachine.writeState(JSON.parse(this.buildVarJson(value)));
+    async writeValue(value: T): Promise<void> {
+        await this.stateMachine.writeState(JSON.parse(this.buildJson(value)));
     }
 
-    async readValue(): Promise<string> {
+    async readValue(): Promise<T> {
         const state = await this.stateMachine.readState();
         if (state === undefined) return this.defaultValue;
         const stateOfRecord = state as unknown as Record<string, unknown>;
-        const value = stateOfRecord[this.varName];
-        return typeof value === "string" ? value : this.defaultValue;
+        const value = stateOfRecord[this.valueName];
+        if (value === undefined || typeof value !== typeof this.defaultValue) {
+            return this.defaultValue;
+        }
+        return value as T;
     }
 
     async resetValue(): Promise<void> {
-        await this.stateMachine.writeState(JSON.parse(this.buildVarJson(this.defaultValue)));
+        await this.stateMachine.writeState(JSON.parse(this.buildJson(this.defaultValue)));
+    }
+}
+
+export class SMSimpleSequenceVar<T extends string | number | boolean> extends SMSimpleVar<T> {
+    protected sequenceName: string;
+
+    constructor(stateMachine: StateMachine, sequenceName: string, valueName: string, defaultValue: T) {
+        super(stateMachine, valueName, defaultValue);
+        this.sequenceName = sequenceName;
+    }
+
+    buildJson(value: T): string {
+        switch (typeof value) {
+            case "string":
+                return `{"${this.sequenceName}":{"${this.valueName}":"${value}"}}`;
+            default:
+                return `{"${this.sequenceName}":{"${this.valueName}":${value}}}`;
+        }
+    }
+
+    async readValue(): Promise<T> {
+        const state = await this.stateMachine.readState();
+        if (state === undefined) return this.defaultValue;
+
+        const stateOfRecord = state as unknown as Record<string, unknown>;
+        const sequence = stateOfRecord[this.sequenceName];
+        if (sequence === undefined || typeof sequence !== "object") {
+            return this.defaultValue;
+        }
+
+        const sequenceRecord = sequence as Record<string, unknown>;
+        const value = sequenceRecord[this.valueName];
+        if (value === undefined || typeof value !== typeof this.defaultValue) {
+            return this.defaultValue;
+        }
+
+        return value as T;
     }
 }

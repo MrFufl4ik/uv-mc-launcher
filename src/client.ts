@@ -4,7 +4,7 @@ import fs from "fs";
 import path from "node:path";
 import {isDirectoryExists, asyncRetryWrapper, ConsoleOpts, createProgressBar} from "./utils.js";
 import http from "isomorphic-git/http/node";
-import {SMSimpleStringVar, StateMachine} from "./statemachine.js";
+import {SMSimpleSequenceVar, StateMachine} from "./statemachine.js";
 import type {SingleBar} from "cli-progress";
 import * as MainConfig from "./main-config.js";
 
@@ -57,9 +57,10 @@ const enum GitInitStatus {
 }
 
 async function initGitClient(clientId: string, gitConfig: GitConfig) {
-    const initStatus = new SMSimpleStringVar(
+    const initStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
-        `${clientId}-initGitStatus`,
+        `client-${clientId}`,
+        `initGitStatus`,
         GitInitStatus.creatingDir
     );
     const clientPath = path.join(process.cwd(), clientId)
@@ -135,9 +136,10 @@ async function gitSyncLocalBranchWithRemote(
         checkout = "checkout"
     }
 
-    const gitSyncStatus = new SMSimpleStringVar(
+    const gitSyncStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
-        `${clientId}-gitSyncStatus`,
+        `client-${clientId}`,
+        `gitSyncStatus`,
         SyncStatus.idle
     );
     if (await gitSyncStatus.readValue() == SyncStatus.idle) {
@@ -183,19 +185,28 @@ async function gitSyncLocalBranchWithRemote(
 async function updateClient(clientId: string, gitConfig: GitConfig) {
     console.log("Check client for update");
 
-    const enum UpdateStatus {
+    const enum UpdateState {
         idle = "idle",
         fetch = "fetch",
         checkout = "checkout"
     }
 
     const clientPath = path.join(process.cwd(), clientId)
+    const smUpdateStatus = new SMSimpleSequenceVar<string>(
+        clientStateMachine,
+        `client-${clientId}`,
+        `updateStatus`,
+        UpdateState.idle
+    );
+    const smRemoteHead = new SMSimpleSequenceVar<string>(
+        clientStateMachine,
+        `client-${clientId}`,
+        `remoteHead`,
+        ""
+    );
 
-    const updateStatus = new SMSimpleStringVar(clientStateMachine, `${clientId}-updateStatus`, UpdateStatus.idle);
-    const updateTarget = new SMSimpleStringVar(clientStateMachine, `${clientId}-updateTarget`, "");
-
-    if (await updateStatus.readValue() === UpdateStatus.idle){
-        await updateStatus.writeValue(UpdateStatus.fetch);
+    if (await smUpdateStatus.readValue() === UpdateState.idle){
+        await smUpdateStatus.writeValue(UpdateState.fetch);
     }
 
     const branch = gitConfig.branch;
@@ -205,7 +216,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
     const resolveRef = (ref: string) =>
         git.resolveRef({fs: fs, dir: clientPath, ref: ref}).catch(() => null);
 
-    if (await updateStatus.readValue() === UpdateStatus.fetch){
+    if (await smUpdateStatus.readValue() === UpdateState.fetch){
         await asyncRetryWrapper(() => git.fetch({
             fs: fs, http: http,
             dir: clientPath,
@@ -223,16 +234,16 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
 
         if (localHead === remoteHead) {
             console.log("Client is already up to date");
-            await updateStatus.resetValue();
+            await smUpdateStatus.resetValue();
             return;
         }
 
-        await updateTarget.writeValue(remoteHead);
-        await updateStatus.writeValue(UpdateStatus.checkout);
+        await smRemoteHead.writeValue(remoteHead);
+        await smUpdateStatus.writeValue(UpdateState.checkout);
     }
 
-    if (await updateStatus.readValue() === UpdateStatus.checkout){
-        const remoteHead = await updateTarget.readValue();
+    if (await smUpdateStatus.readValue() === UpdateState.checkout){
+        const remoteHead = await smRemoteHead.readValue();
         const localHead = await resolveRef(localRef)
 
         const localVer = localHead ? localHead.slice(0, 7) : "init state";
@@ -244,7 +255,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
             `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
         );
         await gitSyncLocalBranchWithRemote(clientId, clientPath, branch, localRef, remoteHead);
-        await updateStatus.resetValue();
+        await smUpdateStatus.resetValue();
     }
 }
 

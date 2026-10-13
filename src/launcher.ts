@@ -8,7 +8,7 @@ import {
     asyncRetryWrapper,
     isValidTarball, isFileExists, isDirectoryEmpty, cleanDirectory
 } from "./utils.js";
-import {SMSimpleStatus, StateMachine} from "./statemachine.js";
+import {SMSimpleVar, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";
 import * as MainConfig from "./main-config.js";
 
@@ -23,7 +23,7 @@ export let launcherConfig = {
 
 const launcherStateMachine = new StateMachine("launcher");
 
-const enum LauncherStatus {
+const enum LauncherState {
     creatingDir = "creating dir",
     tarballDownloading = "tarball downloading",
     tarballExtracting = "tarball extracting",
@@ -58,12 +58,12 @@ function isNetworkError(error: Error): boolean {
 }
 
 async function installLauncher() {
-    const launcherStatus = new SMSimpleStatus(launcherStateMachine, LauncherStatus.creatingDir);
+    const launcherStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
 
     const launcherPath = launcherConfig.path;
     if (!await isDirectoryExists(launcherPath)) {
-        await launcherStatus.resetStatus();
-    } else if (await launcherStatus.readStatus() === LauncherStatus.fullyInstalled) {
+        await launcherStatus.resetValue();
+    } else if (await launcherStatus.readValue() === LauncherState.fullyInstalled) {
         console.log("Launcher already installed. Skipping");
         return;
     }
@@ -71,17 +71,17 @@ async function installLauncher() {
     console.log("Installing launcher");
 
     while (true) {
-        if (await launcherStatus.readStatus() === LauncherStatus.creatingDir) {
+        if (await launcherStatus.readValue() === LauncherState.creatingDir) {
             //cleanup
             if (await isDirectoryExists(launcherPath)) {
                 await rmdir(launcherPath);
             }
             await mkdir(launcherPath, {recursive: false});
-            await launcherStatus.writeStatus(LauncherStatus.tarballDownloading);
+            await launcherStatus.writeValue(LauncherState.tarballDownloading);
         }
         const launcherTarballFileName: string = launcherConfig.tarballFileName;
         const launcherTarballPath: string = path.join(await getTempPath(), launcherTarballFileName);
-        if (await launcherStatus.readStatus() === LauncherStatus.tarballDownloading) {
+        if (await launcherStatus.readValue() === LauncherState.tarballDownloading) {
             //cleanup
             if (await isFileExists(launcherTarballPath)) {
                 await rm(launcherTarballPath, {recursive: false, force: true});
@@ -91,12 +91,12 @@ async function installLauncher() {
                 () => downloadTarball(launcherTarballURL, launcherTarballPath),
                 {shouldRetryError: isNetworkError}
             );
-            await launcherStatus.writeStatus(LauncherStatus.tarballExtracting);
+            await launcherStatus.writeValue(LauncherState.tarballExtracting);
         }
-        if (await launcherStatus.readStatus() === LauncherStatus.tarballExtracting) {
+        if (await launcherStatus.readValue() === LauncherState.tarballExtracting) {
             //validating
             if (!await isValidTarball(launcherTarballPath)) {
-                await launcherStatus.writeStatus(LauncherStatus.tarballDownloading);
+                await launcherStatus.writeValue(LauncherState.tarballDownloading);
                 continue;
             }
             //cleanup
@@ -104,21 +104,21 @@ async function installLauncher() {
                 await cleanDirectory(launcherPath);
             }
             await extractTarball(launcherTarballPath, launcherPath);
-            await launcherStatus.writeStatus(LauncherStatus.defaultConfigsInstalling);
+            await launcherStatus.writeValue(LauncherState.defaultConfigsInstalling);
         }
-        if (await launcherStatus.readStatus() === LauncherStatus.defaultConfigsInstalling) {
+        if (await launcherStatus.readValue() === LauncherState.defaultConfigsInstalling) {
             console.log("Installing default configs");
             await cp(
                 launcherConfig.defaultConfigsPath, launcherConfig.path,
                 {recursive: true, force: true}
             );
             console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-            await launcherStatus.writeStatus(LauncherStatus.cleanup);
+            await launcherStatus.writeValue(LauncherState.cleanup);
         }
-        if (await launcherStatus.readStatus() == LauncherStatus.cleanup) {
+        if (await launcherStatus.readValue() == LauncherState.cleanup) {
             console.log("Cleanup");
             await rm(launcherTarballPath, {recursive: false, force: true});
-            await launcherStatus.writeStatus(LauncherStatus.fullyInstalled);
+            await launcherStatus.writeValue(LauncherState.fullyInstalled);
             break;
         }
     }
