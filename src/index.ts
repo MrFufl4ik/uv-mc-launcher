@@ -4,7 +4,7 @@ import {writeFile} from "node:fs/promises";
 import path from "node:path";
 import lockfile from 'proper-lockfile';
 import {hideFileOnWindows} from "./utils.js";
-import {gameEntry} from "./run.js";
+import {gameEntry} from "./minecraft/run.js";
 
 async function main() {
     await launcherEntry()

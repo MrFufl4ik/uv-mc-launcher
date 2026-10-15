@@ -1,6 +1,6 @@
 import fs from "fs/promises";
 import * as Path from "node:path";
-import {hideFileOnWindows, isFileExists} from "./utils.js";
+import {hideFileOnWindows, isFileExists, jsonDeepMerge} from "./utils.js";
 import {rm} from "node:fs/promises";
 
 export class StateMachine {
@@ -14,29 +14,13 @@ export class StateMachine {
         return Path.join(process.cwd(), `.${this.name.toLowerCase()}-state.json`);
     }
 
-    private deepMerge(target: any, source: any): JSON {
-        const result = {...target};
-        for (const key in source) {
-            if (
-                source[key] &&
-                typeof source[key] === "object" &&
-                !Array.isArray(source[key])
-            ) {
-                result[key] = this.deepMerge(target[key] || {}, source[key]);
-            } else {
-                result[key] = source[key];
-            }
-        }
-        return result;
-    }
-
     async writeState(data: JSON): Promise<JSON> {
         let resultData: JSON;
         const jsonFilePath = await this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
                 const oldData: JSON = JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
-                resultData = this.deepMerge(oldData, data);
+                resultData = jsonDeepMerge(oldData, data);
             } catch {
                 console.log(`Json data in ${jsonFilePath} is broken`);
                 fs.rm(jsonFilePath, {force: true, recursive: false});

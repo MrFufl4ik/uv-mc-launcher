@@ -178,3 +178,19 @@ export function hideFileOnWindows(filePath: string) {
         execFile("attrib", ["+H", filePath]);
     }
 }
+
+export function jsonDeepMerge(target: any, source: any): JSON {
+    const result = {...target};
+    for (const key in source) {
+        if (
+            source[key] &&
+            typeof source[key] === "object" &&
+            !Array.isArray(source[key])
+        ) {
+            result[key] = jsonDeepMerge(target[key] || {}, source[key]);
+        } else {
+            result[key] = source[key];
+        }
+    }
+    return result;
+}
