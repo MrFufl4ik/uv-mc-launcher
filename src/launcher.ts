@@ -80,7 +80,7 @@ async function installLauncher() {
             await launcherStatus.writeValue(LauncherState.tarballDownloading);
         }
         const launcherTarballFileName: string = launcherConfig.tarballFileName;
-        const launcherTarballPath: string = path.join(await getTempPath(), launcherTarballFileName);
+        const launcherTarballPath: string = path.join(getTempPath(), launcherTarballFileName);
         if (await launcherStatus.readValue() === LauncherState.tarballDownloading) {
             //cleanup
             if (await isFileExists(launcherTarballPath)) {

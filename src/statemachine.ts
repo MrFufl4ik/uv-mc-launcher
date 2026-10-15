@@ -1,7 +1,8 @@
 import fs from "fs/promises";
-import * as Path from "node:path";
 import {hideFileOnWindows, isFileExists, jsonDeepMerge} from "./utils.js";
 import {rm} from "node:fs/promises";
+import path from "node:path";
+import {getTempPath} from "./temp.js";
 
 export class StateMachine {
     private name: string = "";
@@ -10,13 +11,13 @@ export class StateMachine {
         this.name = name;
     }
 
-    async getStateJsonFilePath(): Promise<string> {
-        return Path.join(process.cwd(), `.${this.name.toLowerCase()}-state.json`);
+    getStateJsonFilePath() {
+        return path.join(process.cwd(), `.${this.name.toLowerCase()}-state.json`);
     }
 
     async writeState(data: JSON): Promise<JSON> {
         let resultData: JSON;
-        const jsonFilePath = await this.getStateJsonFilePath();
+        const jsonFilePath = this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
                 const oldData: JSON = JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
@@ -30,7 +31,7 @@ export class StateMachine {
             resultData = {...data};
         }
 
-        const atomicJsonFilePath = `${jsonFilePath}.tmp`;
+        const atomicJsonFilePath = path.join(getTempPath(), `${path.basename(jsonFilePath)}.tmp`);
         await fs.writeFile(
             atomicJsonFilePath,
             JSON.stringify(resultData, null, 4)
@@ -43,7 +44,7 @@ export class StateMachine {
     }
 
     async readState(): Promise<JSON | undefined> {
-        const jsonFilePath = await this.getStateJsonFilePath();
+        const jsonFilePath = this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
                 return JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
@@ -55,7 +56,7 @@ export class StateMachine {
     }
 
     async clearState() {
-        await rm(await this.getStateJsonFilePath(), {force: true, recursive: false});
+        await rm(this.getStateJsonFilePath(), {force: true, recursive: false});
     }
 }
 
