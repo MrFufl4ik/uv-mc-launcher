@@ -5,17 +5,19 @@ import path from "node:path";
 import lockfile from 'proper-lockfile';
 import {hideFileOnWindows} from "./utils.js";
 import {gameEntry} from "./minecraft/run.js";
+import {accountsEntry} from "./minecraft/account.js";
 
 async function main() {
-    await launcherEntry()
+    await launcherEntry();
     await clientEntry();
+    await accountsEntry();
     await gameEntry();
 }
 
-async function mainWithLock(){
+async function mainWithLock() {
     const lockFile = path.join(process.cwd(), ".lock");
-    await writeFile(lockFile, "", {encoding: "utf8"})
-    hideFileOnWindows(lockFile)
+    await writeFile(lockFile, "", {encoding: "utf8"});
+    hideFileOnWindows(lockFile);
 
     let release: (() => Promise<void>) | undefined;
     try {

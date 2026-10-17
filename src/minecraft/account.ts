@@ -1,10 +1,9 @@
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
-import {readFile} from "node:fs/promises";
-import {isFileExists, jsonDeepMerge} from "../utils.js";
+import {readFile, writeFile} from "node:fs/promises";
+import {isFileExists} from "../utils.js";
 import {z} from "zod";
-import fs from "fs/promises";
-import {getTempPath} from "../temp.js";
+import * as MainConfig from "./../main-config.js";
 
 enum AccountType {
     online = "Online",
@@ -46,38 +45,52 @@ const AccountSchema = z.object({
         capes: z.array(z.string()).default([])
     }),
     type: z.enum([AccountType.offline, AccountType.online])
-})
+}).loose();
 
 const AccountsConfigSchema = z.object({
     accounts: z.array(
         AccountSchema
     ).default([])
-});
+}).loose();
+
+type AccountsConfigT = z.infer<typeof AccountsConfigSchema>;
+
+export async function accountsEntry() {
+    //todo this is simple test
+    const account = await findPlayerAccount();
+    if (account != undefined){
+        try {
+            await activeAccount(account);
+            console.log(`Account ${account?.name} activate!`);
+        } catch {
+            console.log(`Account already ${account?.name} activate!`);
+        }
+    }
+    else {
+        console.log("Account not found!");
+    }
+}
+
+async function findPlayerAccount(): Promise<Account | undefined> {
+    const mainConfig = await MainConfig.get();
+    const accounts = await getAccountsByName(mainConfig.account.name);
+    let accountById: Account | undefined;
+    if (mainConfig.account.id !== undefined) {
+        accountById = await getAccountById(mainConfig.account.id);
+    }
+    if (accountById !== undefined) {
+        for (const account of accounts) {
+            if (accountById.id === account.id) return account;
+        }
+        return accountById;
+    } else {
+        if (accounts.length > 0) return accounts[0];
+    }
+    return undefined;
+}
 
 function getJsonAccountsFilePath() {
     return path.join(launcherConfig.path, "accounts.json");
-}
-
-export async function writeAccountJson(data: JSON) {
-    let resultData: JSON;
-    const jsonFilePath = getJsonAccountsFilePath();
-    if (await isFileExists(jsonFilePath)) {
-        try {
-            const oldData: JSON = JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
-            resultData = jsonDeepMerge(oldData, data);
-        } catch {
-            throw Error(`writeAccountJson() -> json data in ${jsonFilePath} is broken.`);
-        }
-    } else {
-        resultData = {...data};
-    }
-
-    const atomicJsonFilePath = path.join(getTempPath(), `${path.basename(jsonFilePath)}.tmp`);
-    await fs.writeFile(
-        atomicJsonFilePath,
-        JSON.stringify(resultData, null, 4)
-    );
-    await fs.rename(atomicJsonFilePath, jsonFilePath);
 }
 
 async function readAccountsJson(): Promise<JSON | undefined> {
@@ -92,15 +105,32 @@ async function readAccountsJson(): Promise<JSON | undefined> {
     return undefined;
 }
 
+async function saveAccountsJson(data: AccountsConfigT){
+    const accountFilePath = getJsonAccountsFilePath();
+    await writeFile(accountFilePath, JSON.stringify(data, null, 4))
+}
+
+export async function activeAccount(account: Account) {
+    if (account.active) throw Error("activeAccount() -> account already active")
+
+    const json = await readAccountsJson();
+    if (json === undefined) throw Error("activeAccount() -> accounts json is undefined!");
+    const zParsed = AccountsConfigSchema.parse(json);
+    for (const zAccount of zParsed.accounts) {
+        zAccount.active = zAccount.profile.id === account.id;
+    }
+    await saveAccountsJson(zParsed);
+}
+
 async function getAccounts() {
     let result: Account[] = [];
     const accountJson = await readAccountsJson();
     if (accountJson === undefined) return result;
-    const config = AccountsConfigSchema.parse(accountJson);
-    for (const zAccount of config.accounts) {
+    const zParsed = AccountsConfigSchema.parse(accountJson);
+    for (const zAccount of zParsed.accounts) {
         const accountType = parseAccountType(zAccount.type);
         if (accountType === undefined) {
-            throw Error("getAccount() -> accountType not equals to AccountType enum declaration. :(");
+            throw Error("getAccount() -> accountType not equals to AccountType enum declaration!");
         }
         const accountActive = zAccount.active !== undefined && zAccount.active;
         result.push(new Account(zAccount.profile.id, zAccount.profile.name, accountType, accountActive));
@@ -108,12 +138,13 @@ async function getAccounts() {
     return result;
 }
 
-export async function getAccountByName(name: string): Promise<Account | undefined> {
+export async function getAccountsByName(name: string): Promise<Account[]> {
     const accounts: Account[] = await getAccounts();
+    let result: Account[] = [];
     for (const account of accounts) {
-        if (account.name === name) return account;
+        if (account.name === name) result.push(account);
     }
-    return undefined;
+    return result;
 }
 
 export async function getAccountById(id: string): Promise<Account | undefined> {

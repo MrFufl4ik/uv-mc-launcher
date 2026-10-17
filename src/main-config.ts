@@ -4,18 +4,6 @@ import {z} from "zod";
 import YAML from "yaml";
 import {isFileExists} from "./utils.js";
 
-export const gitClientSchema = z.object({
-    httpUrl: z.string(),
-    branch: z.string(),
-    remote: z.string(),
-    userName: z.string(),
-    authKey: z.string(),
-})
-
-export const runSchema = z.object({
-    clientId: z.string()
-})
-
 export const mainSchema = z.object({
     launcher: z.object({
         tarballUrl: z.string()
@@ -24,10 +12,22 @@ export const mainSchema = z.object({
         z.object({
             id: z.string(),
             displayName: z.string(),
-            git: gitClientSchema.optional()
+            git: z.object({
+                httpUrl: z.string(),
+                branch: z.string(),
+                remote: z.string(),
+                userName: z.string(),
+                authKey: z.string(),
+            }).optional()
         })
     ).default([{id: "client", displayName: "Default"}]),
-    run: runSchema
+    run: z.object({
+        clientId: z.string()
+    }),
+    account: z.object({
+        name: z.string(),
+        id: z.string().optional()
+    })
 });
 
 async function createConfig() {
