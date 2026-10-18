@@ -62,7 +62,7 @@ async function installLauncher() {
     if (!await isDirectoryExists(launcherPath)) {
         await launcherStatus.resetValue();
     } else if (await launcherStatus.readValue() === LauncherState.fullyInstalled) {
-        console.log("Launcher already installed. Skipping");
+        console.log("Launcher already installed. Skipping...");
         return;
     }
 

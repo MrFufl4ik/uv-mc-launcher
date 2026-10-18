@@ -8,6 +8,7 @@ import * as MainConfig from "../main-config.js";
 
 const mainConfig = await MainConfig.get();
 
+//todo можно добавить что-бы при запуске проходила проверка lock file'а у клиента.
 export async function gameEntry() {
     const clientId = mainConfig.run.clientId;
     await makePrismInstance(clientId);
@@ -30,6 +31,7 @@ async function runClient(clientId: string) {
     console.log("Running game")
     const isWindows: boolean = os.platform() == "win32";
     const prismLauncherBin = path.join(launcherConfig.path, isWindows ? "prismlauncher.exe" : "PrismLauncher");
-    spawn(prismLauncherBin, ["-l", clientId], {detached: true, stdio: "ignore"});
+    const child = spawn(prismLauncherBin, ["-l", clientId], {detached: true, stdio: "ignore"});
+    child.unref();
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }

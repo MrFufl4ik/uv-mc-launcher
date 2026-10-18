@@ -73,7 +73,7 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
         await rm(path.join(clientPath, ".git"));
         await initStatus.writeValue(GitInitStatus.gitInit);
     } else if (await initStatus.readValue() === GitInitStatus.fullyInit){
-        console.log("Client already initialising. Skipping");
+        console.log("Client already initialising. Skipping...");
         return
     }
 
@@ -233,7 +233,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
         if (!remoteHead) throw new Error(`No remote ref of ${remoteRef}`);
 
         if (localHead === remoteHead) {
-            console.log("Client is already up to date");
+            console.log(`${ConsoleOpts.green}Client is already up to date${ConsoleOpts.reset}`);
             await smUpdateStatus.resetValue();
             return;
         }
