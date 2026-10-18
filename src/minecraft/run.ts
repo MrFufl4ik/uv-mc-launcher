@@ -22,6 +22,10 @@ async function makePrismInstance(clientId: string) {
         await mkdir(prismLauncherInstancesPath, {recursive: false});
     }
     const localInstancePath = path.join(process.cwd(), clientId);
+    if (!await isDirectoryExists(localInstancePath)){
+        console.log(`Files for client: "${clientId}" not found!`)
+        process.exit(1);
+    }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
     if (!await isFileExists(linkedInstancePath)) await symlink(localInstancePath, linkedInstancePath, "dir");
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
