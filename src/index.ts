@@ -3,7 +3,7 @@ import {launcherEntry} from "./launcher.js";
 import {writeFile} from "node:fs/promises";
 import path from "node:path";
 import lockfile from 'proper-lockfile';
-import {hideFileOnWindows} from "./utils.js";
+import {hideFileOnWindows} from "./utils/misc.js";
 import {gameEntry} from "./minecraft/run.js";
 import {accountsEntry} from "./minecraft/account.js";
 

@@ -1,8 +1,23 @@
-import fs from "fs/promises";
-import {hideFileOnWindows, isFileExists, jsonDeepMerge} from "./utils.js";
-import {rm} from "node:fs/promises";
+import {hideFileOnWindows, isFileExists} from "./utils/misc.js";
+import {readFile, rename, rm, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {getTempPath} from "./temp.js";
+
+export function jsonDeepMerge(target: any, source: any): JSON {
+    const result = {...target};
+    for (const key in source) {
+        if (
+            source[key] &&
+            typeof source[key] === "object" &&
+            !Array.isArray(source[key])
+        ) {
+            result[key] = jsonDeepMerge(target[key] || {}, source[key]);
+        } else {
+            result[key] = source[key];
+        }
+    }
+    return result;
+}
 
 export class StateMachine {
     private name: string = "";
@@ -20,11 +35,11 @@ export class StateMachine {
         const jsonFilePath = this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
-                const oldData: JSON = JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
+                const oldData: JSON = JSON.parse(await readFile(jsonFilePath, {encoding: "utf8"}));
                 resultData = jsonDeepMerge(oldData, data);
             } catch {
                 console.log(`Json data in ${jsonFilePath} is broken`);
-                fs.rm(jsonFilePath, {force: true, recursive: false});
+                await rm(jsonFilePath, {force: true, recursive: false});
                 resultData = {...data};
             }
         } else {
@@ -32,11 +47,11 @@ export class StateMachine {
         }
 
         const atomicJsonFilePath = path.join(getTempPath(), `${path.basename(jsonFilePath)}.tmp`);
-        await fs.writeFile(
+        await writeFile(
             atomicJsonFilePath,
             JSON.stringify(resultData, null, 4)
         );
-        await fs.rename(atomicJsonFilePath, jsonFilePath);
+        await rename(atomicJsonFilePath, jsonFilePath);
 
         hideFileOnWindows(jsonFilePath);
 
@@ -47,7 +62,7 @@ export class StateMachine {
         const jsonFilePath = this.getStateJsonFilePath();
         if (await isFileExists(jsonFilePath)) {
             try {
-                return JSON.parse(await fs.readFile(jsonFilePath, {encoding: "utf8"}));
+                return JSON.parse(await readFile(jsonFilePath, {encoding: "utf8"}));
             } catch {
                 return undefined;
             }

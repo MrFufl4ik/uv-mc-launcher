@@ -1,13 +1,11 @@
 import {cp, mkdir, rm, rmdir} from "node:fs/promises";
 import path from "node:path";
 import {
-    isDirectoryExists,
-    downloadTarball,
-    extractTarball,
+    isDirectoryExists, isFileExists, isDirectoryEmpty, cleanDirectory,
     ConsoleOpts,
-    asyncRetryWrapper,
-    isValidTarball, isFileExists, isDirectoryEmpty, cleanDirectory
-} from "./utils.js";
+    asyncRetryWrapper
+} from "./utils/misc.js";
+import {downloadTarball, extractTarball, isValidTarball} from "./utils/tarball.js";
 import {SMSimpleVar, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";
 import * as MainConfig from "./main-config.js";

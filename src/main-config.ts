@@ -2,7 +2,7 @@ import {readFile, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {z} from "zod";
 import YAML from "yaml";
-import {isFileExists} from "./utils.js";
+import {isFileExists} from "./utils/misc.js";
 
 export const mainSchema = z.object({
     launcher: z.object({

@@ -2,7 +2,7 @@ import {spawn} from "node:child_process";
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
 import os from "node:os";
-import {ConsoleOpts, isDirectoryExists, isFileExists} from "../utils.js";
+import {ConsoleOpts, isDirectoryExists, isFileExists} from "../utils/misc.js";
 import {mkdir, symlink} from "node:fs/promises";
 import * as MainConfig from "../main-config.js";
 

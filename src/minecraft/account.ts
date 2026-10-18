@@ -1,11 +1,12 @@
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
-import {readFile, writeFile} from "node:fs/promises";
-import {isFileExists} from "../utils.js";
+import {readFile, rename, writeFile} from "node:fs/promises";
+import {isFileExists} from "../utils/misc.js";
 import {z} from "zod";
 import * as MainConfig from "./../main-config.js";
 import {Buffer} from "node:buffer";
 import {createHash, randomBytes} from "node:crypto";
+import {getTempPath} from "../temp.js";
 
 enum AccountType {
     online = "Online",
@@ -121,9 +122,11 @@ async function readAccountsJson(): Promise<JSON | undefined> {
 }
 
 async function saveAccountsJson(data: ZAccountsConfigT) {
-    const accountFilePath = getJsonAccountsFilePath();
+    const accountsFilePath = getJsonAccountsFilePath();
 
-    await writeFile(accountFilePath, JSON.stringify(data, null, 4));
+    const atomicJsonFilePath = path.join(getTempPath(), `${path.basename(accountsFilePath)}.tmp`);
+    await writeFile(atomicJsonFilePath, JSON.stringify(data, null, 4));
+    await rename(atomicJsonFilePath, accountsFilePath);
 }
 
 function fromRfc4122(bytes: Buffer): string {
