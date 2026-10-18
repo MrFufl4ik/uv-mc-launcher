@@ -5,8 +5,12 @@
   "main": "index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js"
+    "build-ts": "tsc",
+    "build-es": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node26 --minify '--banner:js=import { createRequire } from \"node:module\"; const require = createRequire(import.meta.url);' --outfile=build/uv-mc-launcher.mjs",
+    "build-sea": "node --build-sea sea-config.json",
+    "build-sea-win32": "node --build-sea sea-config-win32.json",
+    "build": "npm run build-ts && npm run build-es && npm run build-sea && npm run build-sea-win32",
+    "postinstall": "patch-package"
   },
   "keywords": [],
   "author": "",
@@ -16,15 +20,21 @@
     "@types/cli-progress": "^3.11.6",
     "@types/node": "^26.6.2",
     "@types/proper-lockfile": "^4.1.4",
+    "esbuild": "^0.28.2",
+    "patch-package": "^8.0.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "ci": "^2.3.0",
     "cli-progress": "^3.12.0",
     "isomorphic-git": "^1.42.2",
     "proper-lockfile": "^4.1.2",
     "tar": "^7.5.22",
     "yaml": "^2.9.1",
     "zod": "^4.6.5"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true
   }
 }

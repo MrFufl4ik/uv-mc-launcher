@@ -1,0 +1,6 @@
+{
+  "main": "./build/uv-mc-launcher.mjs",
+  "mainFormat": "module",
+  "output": "./build/uv-mc-launcher",
+  "disableExperimentalSEAWarning": true
+}

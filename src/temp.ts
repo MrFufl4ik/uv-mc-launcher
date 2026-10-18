@@ -3,7 +3,7 @@ import {mkdir} from "node:fs/promises";
 import {isDirectoryExists} from "./utils/misc.js";
 
 const tempPath = path.join(process.cwd(), "tmp");
-if (!isDirectoryExists(tempPath)) await mkdir(tempPath, {recursive: false});
+if (!await isDirectoryExists(tempPath)) await mkdir(tempPath, {recursive: false});
 
 export function getTempPath() {
     return tempPath;

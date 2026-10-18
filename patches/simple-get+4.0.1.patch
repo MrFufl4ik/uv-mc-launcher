@@ -1,0 +1,36 @@
+diff --git a/node_modules/simple-get/index.js b/node_modules/simple-get/index.js
+index 80e52e8..a10426f 100644
+--- a/node_modules/simple-get/index.js
++++ b/node_modules/simple-get/index.js
+@@ -7,7 +7,7 @@ const http = require('http')
+ const https = require('https')
+ const once = require('once')
+ const querystring = require('querystring')
+-const url = require('url')
++const { URL } = require('url')
+ 
+ const isStream = o => o !== null && typeof o === 'object' && typeof o.pipe === 'function'
+ 
+@@ -16,7 +16,12 @@ function simpleGet (opts, cb) {
+   cb = once(cb)
+ 
+   if (opts.url) {
+-    const { hostname, port, protocol, auth, path } = url.parse(opts.url) // eslint-disable-line node/no-deprecated-api
++    const parsedUrl = new URL(opts.url)
++    const { hostname, port, protocol, username, password, pathname, search } = parsedUrl
++    const auth = username || password
++        ? `${username}${password ? `:${password}` : ''}`
++        : null
++    const path = `${pathname}${search}`
+     delete opts.url
+     if (!hostname && !port && !protocol && !auth) opts.path = path // Relative redirect
+     else Object.assign(opts, { hostname, port, protocol, auth, path }) // Absolute redirect
+@@ -52,7 +57,7 @@ function simpleGet (opts, cb) {
+       delete opts.headers.host // Discard `host` header on redirect (see #32)
+       res.resume() // Discard response
+ 
+-      const redirectHost = url.parse(opts.url).hostname // eslint-disable-line node/no-deprecated-api
++      const redirectHost = new URL(opts.url).hostname
+       // If redirected host is different than original host, drop headers to prevent cookie leak (#73)
+       if (redirectHost !== null && redirectHost !== originalHost) {
+         delete opts.headers.cookie

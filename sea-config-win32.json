@@ -1,0 +1,9 @@
+{
+  "main": "./build/uv-mc-launcher.mjs",
+  "mainFormat": "module",
+  "executable": "./node-win32/node.exe",
+  "output": "./build/uv-mc-launcher.exe",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": false,
+  "useSnapshot": false
+}

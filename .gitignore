@@ -5,6 +5,7 @@
 /old_run.sh
 /launcher/
 /node/
+/node-win32
 /client/
 /node_modules/
 /tmp/
