@@ -4,6 +4,8 @@ import {readFile, writeFile} from "node:fs/promises";
 import {isFileExists} from "../utils.js";
 import {z} from "zod";
 import * as MainConfig from "./../main-config.js";
+import {Buffer} from "node:buffer";
+import {createHash, randomBytes} from "node:crypto";
 
 enum AccountType {
     online = "Online",
@@ -44,40 +46,53 @@ const AccountSchema = z.object({
         }).default({id: "", url: "", variant: ""}),
         capes: z.array(z.string()).default([])
     }),
-    type: z.enum([AccountType.offline, AccountType.online])
+    type: z.enum([AccountType.offline, AccountType.online]),
+    ygg: z.object({
+        extra: z.object({
+            clientToken: z.string(),
+            userName: z.string()
+        }).optional(),
+        iat: z.number(),
+        token: z.string()
+    })
 }).loose();
+type ZAccountT = z.infer<typeof AccountSchema>;
 
 const AccountsConfigSchema = z.object({
     accounts: z.array(
         AccountSchema
-    ).default([])
+    ).default([]),
+    formatVersion: z.number().default(3)
 }).loose();
-
-type AccountsConfigT = z.infer<typeof AccountsConfigSchema>;
+type ZAccountsConfigT = z.infer<typeof AccountsConfigSchema>;
 
 export async function accountsEntry() {
-    //todo this is simple test
-    const account = await findPlayerAccount();
-    if (account != undefined){
+    //todo this is simple business logic
+    const mainConfig = await MainConfig.get();
+    const account = await findUserAccount({name: mainConfig.account.name, id: mainConfig.account.id});
+    if (account != undefined) {
         try {
             await activeAccount(account);
             console.log(`Account ${account?.name} activate!`);
         } catch {
             console.log(`Account already ${account?.name} activate!`);
         }
-    }
-    else {
-        console.log("Account not found!");
+    } else {
+        const newAccount = await createOfflineAccount(mainConfig.account.name);
+        await activeAccount(newAccount);
+        console.log(`New account ${newAccount.name} created!`);
     }
 }
 
-async function findPlayerAccount(): Promise<Account | undefined> {
-    const mainConfig = await MainConfig.get();
-    const accounts = await getAccountsByName(mainConfig.account.name);
+type FindUserAccountOptions = {
+    name: string,
+    id: string | undefined;
+}
+
+async function findUserAccount(findUserAccountOptions: FindUserAccountOptions): Promise<Account | undefined> {
+    const accounts = await getAccountsByName(findUserAccountOptions.name);
     let accountById: Account | undefined;
-    if (mainConfig.account.id !== undefined) {
-        accountById = await getAccountById(mainConfig.account.id);
-    }
+    if (findUserAccountOptions.id !== undefined) accountById = await getAccountById(findUserAccountOptions.id);
     if (accountById !== undefined) {
         for (const account of accounts) {
             if (accountById.id === account.id) return account;
@@ -105,17 +120,76 @@ async function readAccountsJson(): Promise<JSON | undefined> {
     return undefined;
 }
 
-async function saveAccountsJson(data: AccountsConfigT){
+async function saveAccountsJson(data: ZAccountsConfigT) {
     const accountFilePath = getJsonAccountsFilePath();
-    await writeFile(accountFilePath, JSON.stringify(data, null, 4))
+
+    await writeFile(accountFilePath, JSON.stringify(data, null, 4));
+}
+
+function fromRfc4122(bytes: Buffer): string {
+    if (bytes.length !== 16) {
+        throw new Error(`fromRfc4122() -> expects exactly 16 bytes, got ${bytes.length}!`);
+    }
+    return Buffer.from(bytes).toString("hex");
+}
+
+function createUuid128(): string {
+    return Buffer.from(randomBytes(16)).toString("hex");
+}
+
+function uuid128FromUsername(userName: string): string {
+    const input = `OfflinePlayer:${userName}`;
+
+    const digest: Buffer = createHash("md5").update(Buffer.from(input, "utf8")).digest();
+
+    const bOr = (array: Buffer, index: number, value: number): void => {
+        if (array[index] !== undefined) array[index] |= value;
+    };
+    const bAnd = (array: Buffer, index: number, value: number): void => {
+        if (array[index] !== undefined) array[index] &= value;
+    };
+
+    bAnd(digest, 6, 0x0f);  // clear version
+    bOr(digest, 6, 0x30);   // set to version 3
+    bAnd(digest, 8, 0x3f);  // clear variant
+    bOr(digest, 8, 0x80);   // set to IETF variant
+
+    return fromRfc4122(digest);
+}
+
+function unixTimestamp(): number {
+    return Math.floor(Date.now() / 1000);
+}
+
+async function createOfflineAccount(userName: string): Promise<Account> {
+    const json = await readAccountsJson();
+    let zData: ZAccountsConfigT = AccountsConfigSchema.parse(json !== undefined ? json : {});
+    const account: ZAccountT = AccountSchema.parse({
+        profile: {
+            id: uuid128FromUsername(userName),
+            name: userName,
+        },
+        type: "Offline",
+        ygg: {
+            extra: {
+                clientToken: createUuid128(),
+                userName: userName
+            },
+            iat: unixTimestamp(),
+            token: "0"
+        }
+    });
+    zData.accounts.push(account);
+    await saveAccountsJson(zData);
+    return new Account(account.profile.id, account.profile.name, account.type, false);
 }
 
 export async function activeAccount(account: Account) {
-    if (account.active) throw Error("activeAccount() -> account already active")
+    if (account.active) throw Error("activeAccount() -> account already active");
 
     const json = await readAccountsJson();
     if (json === undefined) throw Error("activeAccount() -> accounts json is undefined!");
-    const zParsed = AccountsConfigSchema.parse(json);
+    const zParsed: ZAccountsConfigT = AccountsConfigSchema.parse(json);
     for (const zAccount of zParsed.accounts) {
         zAccount.active = zAccount.profile.id === account.id;
     }
@@ -124,9 +198,9 @@ export async function activeAccount(account: Account) {
 
 async function getAccounts() {
     let result: Account[] = [];
-    const accountJson = await readAccountsJson();
-    if (accountJson === undefined) return result;
-    const zParsed = AccountsConfigSchema.parse(accountJson);
+    const json = await readAccountsJson();
+    if (json === undefined) return result;
+    const zParsed: ZAccountsConfigT = AccountsConfigSchema.parse(json);
     for (const zAccount of zParsed.accounts) {
         const accountType = parseAccountType(zAccount.type);
         if (accountType === undefined) {

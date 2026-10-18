@@ -8,6 +8,10 @@ export const mainSchema = z.object({
     launcher: z.object({
         tarballUrl: z.string()
     }).default({tarballUrl: "https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz"}),
+    account: z.object({
+        name: z.string(),
+        id: z.string().optional()
+    }),
     clients: z.array(
         z.object({
             id: z.string(),
@@ -23,10 +27,6 @@ export const mainSchema = z.object({
     ).default([{id: "client", displayName: "Default"}]),
     run: z.object({
         clientId: z.string()
-    }),
-    account: z.object({
-        name: z.string(),
-        id: z.string().optional()
     })
 });
 
