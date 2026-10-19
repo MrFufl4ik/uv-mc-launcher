@@ -1,8 +1,8 @@
-import {readdir, rm, stat} from "node:fs/promises";
+import {readdir, rm, stat, symlink} from "node:fs/promises";
 import fs from "fs/promises";
 import * as cliProgress from "cli-progress";
 import os from "node:os";
-import {execFile} from "node:child_process";
+import {execFile, spawn} from "node:child_process";
 import path from "node:path";
 
 //console
@@ -39,8 +39,7 @@ export async function isDirectoryExists(path: string): Promise<boolean> {
 
 export async function isFileExists(path: string): Promise<boolean> {
     try {
-        await fs.access(path);
-        return true;
+        return (await stat(path)).isFile();
     } catch {
         return false;
     }
@@ -63,6 +62,35 @@ export async function cleanDirectory(directoryPath: string) {
 export function hideFileOnWindows(filePath: string) {
     if (os.platform() == "win32") {
         execFile("attrib", ["+H", filePath]);
+    }
+}
+
+export async function makeSymLink(targetPath: string, linkPath: string) {
+    if (os.platform() == "win32") {
+        const makeSymlinkWin32Binary = path.join(process.cwd(), "make-symlink-win32.exe");
+        if (!await isFileExists(makeSymlinkWin32Binary)) {
+            console.log(`${makeSymlinkWin32Binary} doesn't exists!`);
+            process.exit(1);
+        }
+        await new Promise<void>((resolve, reject) => {
+            const child = spawn(makeSymlinkWin32Binary, [targetPath, linkPath], {
+                stdio: 'inherit',
+            });
+            child.once('error', reject);
+            child.once('close', (code, signal) => {
+                if (code === 0) {
+                    resolve();
+                } else {
+                    reject(
+                        new Error(
+                            `make-symlink-win32.exe failed: code=${code}, signal=${signal}`,
+                        ),
+                    );
+                }
+            });
+        });
+    } else {
+        await symlink(targetPath, linkPath);
     }
 }
 

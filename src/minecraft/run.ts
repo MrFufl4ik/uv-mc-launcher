@@ -2,13 +2,13 @@ import {spawn} from "node:child_process";
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
 import os from "node:os";
-import {ConsoleOpts, isDirectoryExists, isFileExists} from "../utils/misc.js";
+import {ConsoleOpts, isDirectoryExists, isFileExists, makeSymLink} from "../utils/misc.js";
 import {mkdir, symlink} from "node:fs/promises";
 import * as MainConfig from "../main-config.js";
 
 const mainConfig = await MainConfig.get();
 
-//todo можно добавить что-бы при запуске проходила проверка lock file'а у клиента.
+//todo add instance lock file check!
 export async function gameEntry() {
     const clientId = mainConfig.run.clientId;
     await makePrismInstance(clientId);
@@ -27,7 +27,7 @@ async function makePrismInstance(clientId: string) {
         process.exit(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
-    if (!await isFileExists(linkedInstancePath)) await symlink(localInstancePath, linkedInstancePath, "dir");
+    if (!await isDirectoryExists(linkedInstancePath)) await makeSymLink(localInstancePath, linkedInstancePath);
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
