@@ -96,3 +96,11 @@ export async function asyncRetryWrapper<T>(
     }
     throw new Error(`${attempts} retry attempts on ${fn.name} function didn't yield results`);
 }
+
+export function sleep(milliSecs: number) {
+    new Promise(resolve => setTimeout(resolve, milliSecs));
+}
+
+export function unixTimestamp(): number {
+    return Math.floor(Date.now() / 1000);
+}

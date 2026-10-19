@@ -2,7 +2,7 @@ import {mkdir, rm} from "node:fs/promises";
 import git from "isomorphic-git";
 import fs from "fs";
 import path from "node:path";
-import {isDirectoryExists, asyncRetryWrapper, ConsoleOpts, createProgressBar} from "./utils/misc.js";
+import {asyncRetryWrapper, ConsoleOpts, createProgressBar, isDirectoryExists} from "./utils/misc.js";
 import http from "isomorphic-git/http/node";
 import {SMSimpleSequenceVar, StateMachine} from "./statemachine.js";
 import type {SingleBar} from "cli-progress";

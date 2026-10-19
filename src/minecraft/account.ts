@@ -1,12 +1,11 @@
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
 import {readFile, rename, writeFile} from "node:fs/promises";
-import {isFileExists} from "../utils/misc.js";
+import {ConsoleOpts, isFileExists, unixTimestamp} from "../utils/misc.js";
 import {z} from "zod";
 import * as MainConfig from "./../main-config.js";
-import {Buffer} from "node:buffer";
-import {createHash, randomBytes} from "node:crypto";
 import {getTempPath} from "../temp.js";
+import {createUuid128, uuid128FromUsername} from "./uuid.js";
 
 enum AccountType {
     online = "Online",
@@ -68,8 +67,11 @@ const AccountsConfigSchema = z.object({
 type ZAccountsConfigT = z.infer<typeof AccountsConfigSchema>;
 
 export async function accountsEntry() {
-    //todo this is simple business logic
     const mainConfig = await MainConfig.get();
+    if (!isValidUsername(mainConfig.account.name)){
+        console.log(`Account name "${mainConfig.account.name}" is not valid!`);
+        process.exit(1);
+    }
     const account = await findUserAccount({name: mainConfig.account.name, id: mainConfig.account.id});
     if (account != undefined) {
         try {
@@ -83,6 +85,7 @@ export async function accountsEntry() {
         await activeAccount(newAccount);
         console.log(`New account ${newAccount.name} created!`);
     }
+    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 type FindUserAccountOptions = {
@@ -129,39 +132,9 @@ async function saveAccountsJson(data: ZAccountsConfigT) {
     await rename(atomicJsonFilePath, accountsFilePath);
 }
 
-function fromRfc4122(bytes: Buffer): string {
-    if (bytes.length !== 16) {
-        throw new Error(`fromRfc4122() -> expects exactly 16 bytes, got ${bytes.length}!`);
-    }
-    return Buffer.from(bytes).toString("hex");
-}
-
-function createUuid128(): string {
-    return Buffer.from(randomBytes(16)).toString("hex");
-}
-
-function uuid128FromUsername(userName: string): string {
-    const input = `OfflinePlayer:${userName}`;
-
-    const digest: Buffer = createHash("md5").update(Buffer.from(input, "utf8")).digest();
-
-    const bOr = (array: Buffer, index: number, value: number): void => {
-        if (array[index] !== undefined) array[index] |= value;
-    };
-    const bAnd = (array: Buffer, index: number, value: number): void => {
-        if (array[index] !== undefined) array[index] &= value;
-    };
-
-    bAnd(digest, 6, 0x0f);  // clear version
-    bOr(digest, 6, 0x30);   // set to version 3
-    bAnd(digest, 8, 0x3f);  // clear variant
-    bOr(digest, 8, 0x80);   // set to IETF variant
-
-    return fromRfc4122(digest);
-}
-
-function unixTimestamp(): number {
-    return Math.floor(Date.now() / 1000);
+function isValidUsername(userName: string): Boolean {
+    const regex = /^[A-Za-z0-9_]{3,16}$/;
+    return regex.test(userName);
 }
 
 async function createOfflineAccount(userName: string): Promise<Account> {
