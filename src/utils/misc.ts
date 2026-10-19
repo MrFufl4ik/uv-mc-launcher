@@ -1,5 +1,4 @@
 import {readdir, rm, stat, symlink} from "node:fs/promises";
-import fs from "fs/promises";
 import * as cliProgress from "cli-progress";
 import os from "node:os";
 import {execFile, spawn} from "node:child_process";

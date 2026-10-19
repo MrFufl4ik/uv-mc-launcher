@@ -2,8 +2,8 @@ import {spawn} from "node:child_process";
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
 import os from "node:os";
-import {ConsoleOpts, isDirectoryExists, isFileExists, makeSymLink} from "../utils/misc.js";
-import {mkdir, symlink} from "node:fs/promises";
+import {ConsoleOpts, isDirectoryExists, makeSymLink} from "../utils/misc.js";
+import {mkdir} from "node:fs/promises";
 import * as MainConfig from "../main-config.js";
 
 const mainConfig = await MainConfig.get();
