@@ -72,8 +72,9 @@ export async function makeSymLink(targetPath: string, linkPath: string) {
             process.exit(1);
         }
         await new Promise<void>((resolve, reject) => {
-            const child = spawn(makeSymlinkWin32Binary, [targetPath, linkPath], {
+            const child = spawn("cmd.exe", ["/c", makeSymlinkWin32Binary, targetPath, linkPath], {
                 stdio: 'inherit',
+                windowsHide: true
             });
             child.once('error', reject);
             child.once('close', (code, signal) => {
