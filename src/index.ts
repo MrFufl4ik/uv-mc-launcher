@@ -17,6 +17,7 @@ async function main() {
     await gameEntry();
     console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
     sleep(1000 * 3);
+    //todo ждет завершения под win32 хотя не должен
 }
 
 async function mainWithLock() {

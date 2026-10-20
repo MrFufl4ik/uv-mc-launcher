@@ -217,6 +217,8 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
         git.resolveRef({fs: fs, dir: clientPath, ref: ref}).catch(() => null);
 
     if (await smUpdateStatus.readValue() === UpdateState.fetch){
+        //todo this maybe work bad with retry!!!!
+        let pBar: SingleBar | undefined;
         await asyncRetryWrapper(() => git.fetch({
             fs: fs, http: http,
             dir: clientPath,
@@ -225,7 +227,22 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
                 password: gitConfig.authKey
             }),
             ref: branch,
-            singleBranch: true
+            singleBranch: true,
+            onProgress: progress => {
+                if (progress.total !== undefined) {
+                    if (progress.loaded == 1) {
+                        pBar = createProgressBar("Fetching", "E");
+                        pBar.start(progress.total, 0);
+                    }
+                    if (pBar !== undefined) {
+                        pBar.update(progress.loaded);
+                        if (progress.loaded == progress.total) {
+                            pBar.stop();
+                        }
+                    }
+                }
+            }
+            //todo add depth 1 to dev mode
         }), {shouldRetryError: isTimeoutError});
 
         const remoteHead = await resolveRef(remoteRef);
