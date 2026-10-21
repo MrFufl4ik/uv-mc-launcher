@@ -1,13 +1,12 @@
 import {ConsoleOpts, createProgressBar, getFileSuffix, isFileExists} from "./misc.js";
 import * as tar from "tar";
-import * as lzma from "lzma-native";
 import * as unzipper from "unzipper";
 import path, {basename} from "node:path";
 import {exitWithPause} from "../index.js";
 import {pipeline} from "node:stream/promises";
 import fs from "fs";
 
-const validArchiveSuffixes = [".zip", ".tar.gz", ".tar.xz"];
+const validArchiveSuffixes = [".tar.gz", ".zip"];
 
 export async function extractArchive(archivePath: string, destinationPath: string): Promise<void> {
     console.log(`Extracting archive ${archivePath} to ${destinationPath}`);
@@ -20,9 +19,6 @@ export async function extractArchive(archivePath: string, destinationPath: strin
     switch (suffix) {
         case ".tar.gz":
             await extractTarball(archivePath, destinationPath);
-            break;
-        case ".tar.xz":
-            await extractXZTarball(archivePath, destinationPath);
             break;
         case ".zip":
             await extractZip(archivePath, destinationPath);
@@ -41,8 +37,6 @@ export async function isValidArchive(archivePath: string): Promise<boolean> {
     switch (suffix) {
         case ".tar.gz":
             return await isValidTarball(archivePath);
-        case ".tar.xz":
-            return await isValidXZTarball(archivePath);
         case ".zip":
             return await isValidZip(archivePath);
     }
@@ -83,53 +77,6 @@ async function isValidTarball(tarballPath: string): Promise<boolean> {
             file: tarballPath,
             gzip: true
         });
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-async function extractXZTarball(xzTarballPath: string, destinationPath: string): Promise<void> {
-    let entryCount = 0;
-
-    await pipeline(
-        fs.createReadStream(xzTarballPath),
-        lzma.createDecompressor(),
-        tar.t({
-            cwd: destinationPath,
-            onReadEntry() {
-                entryCount++;
-            }
-        })
-    );
-
-    const bar = createProgressBar("Extracting", "F");
-    bar.start(entryCount, 0);
-
-    let writeCount = 0;
-    await pipeline(
-        fs.createReadStream(xzTarballPath),
-        lzma.createDecompressor(),
-        tar.x({
-            onReadEntry() {
-                writeCount++;
-                bar.update(writeCount);
-            },
-            strict: true
-        })
-    );
-
-    bar.stop();
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-}
-
-async function isValidXZTarball(xzTarballPath: string): Promise<boolean> {
-    try{
-        await pipeline(
-            fs.createReadStream(xzTarballPath),
-            lzma.createDecompressor(),
-            tar.t()
-        );
         return true;
     } catch {
         return false;

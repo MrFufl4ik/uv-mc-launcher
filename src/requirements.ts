@@ -3,7 +3,9 @@ import {spawn} from "node:child_process";
 import {ConsoleOpts, isFileExists} from "./utils/misc.js";
 import path from "node:path";
 import {exitWithPause} from "./index.js";
+import {StateMachine} from "./statemachine.js";
 
+const requirementsStateMachine = new StateMachine("requirements");
 
 export async function requirementsEntry() {
     if (os.platform() != "win32") {

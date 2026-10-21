@@ -24,15 +24,6 @@ export let launcherConfig = {
 
 const launcherStateMachine = new StateMachine("launcher");
 
-const enum LauncherState {
-    creatingDir = "creating dir",
-    archiveDownloading = "archive downloading",
-    archiveExtracting = "archive extracting",
-    defaultConfigsInstalling = "default configs installing",
-    cleanup = "cleanup",
-    fullyInstalled = "fully installed"
-}
-
 export async function launcherEntry() {
     await installLauncher();
 }
@@ -59,6 +50,14 @@ function isNetworkError(error: Error): boolean {
 }
 
 async function installLauncher() {
+    const enum LauncherState {
+        creatingDir = "creating dir",
+        archiveDownloading = "archive downloading",
+        archiveExtracting = "archive extracting",
+        defaultConfigsInstalling = "default configs installing",
+        cleanup = "cleanup",
+        fullyInstalled = "fully installed"
+    }
     const smLauncherStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
     const smLauncherArchivePath = new SMSimpleVar<string>(launcherStateMachine, "archiveFileName", "");
 
