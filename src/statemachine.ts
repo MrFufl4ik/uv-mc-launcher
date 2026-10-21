@@ -1,4 +1,4 @@
-import {hideFileOnWindows, isFileExists} from "./utils/misc.js";
+import {hideFile_win32, isFileExists} from "./utils/misc.js";
 import {readFile, rename, rm, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {getTempPath} from "./temp.js";
@@ -53,7 +53,7 @@ export class StateMachine {
         );
         await rename(atomicJsonFilePath, jsonFilePath);
 
-        hideFileOnWindows(jsonFilePath);
+        hideFile_win32(jsonFilePath);
 
         return resultData;
     }
@@ -78,7 +78,7 @@ export class StateMachine {
 export class SMSimpleVar<T extends string | number | boolean> {
     protected stateMachine: StateMachine;
     protected readonly valueName: string;
-    protected readonly defaultValue: T;
+    public readonly defaultValue: T;
 
     constructor(stateMachine: StateMachine, valueName: string, defaultValue: T) {
         this.stateMachine = stateMachine;
@@ -86,7 +86,7 @@ export class SMSimpleVar<T extends string | number | boolean> {
         this.defaultValue = defaultValue;
     }
 
-    buildJson(value: T): string {
+    protected buildJson(value: T): string {
         switch (typeof value) {
             case "string":
                 return `{"${this.valueName}":"${value}"}`;
@@ -123,7 +123,7 @@ export class SMSimpleSequenceVar<T extends string | number | boolean> extends SM
         this.sequenceName = sequenceName;
     }
 
-    buildJson(value: T): string {
+    protected buildJson(value: T): string {
         switch (typeof value) {
             case "string":
                 return `{"${this.sequenceName}":{"${this.valueName}":"${value}"}}`;

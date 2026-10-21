@@ -70,7 +70,7 @@ type ZAccountsConfigT = z.infer<typeof AccountsConfigSchema>;
 export async function accountsEntry() {
     const mainConfig = await MainConfig.get();
     if (!isValidUsername(mainConfig.account.name)){
-        console.log(`Account name "${mainConfig.account.name}" is not valid!`);
+        console.log(`${ConsoleOpts.yellow}Account name "${mainConfig.account.name}" is not valid!${ConsoleOpts.yellow}`);
         exitWithPause(1);
     }
     const account = await findUserAccount({name: mainConfig.account.name, id: mainConfig.account.id});

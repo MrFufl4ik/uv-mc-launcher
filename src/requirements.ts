@@ -1,6 +1,6 @@
 import os from "node:os";
 import {spawn} from "node:child_process";
-import {isFileExists} from "./utils/misc.js";
+import {ConsoleOpts, isFileExists} from "./utils/misc.js";
 import path from "node:path";
 import {exitWithPause} from "./index.js";
 
@@ -8,7 +8,7 @@ import {exitWithPause} from "./index.js";
 export async function requirementsEntry() {
     if (os.platform() != "win32") {
         if (!await isGitInstalled()) {
-            console.log("Install git (version control program). And add it to path.")
+            console.log(`${ConsoleOpts.yellow}Install git (version control program). And add it to path.${ConsoleOpts.reset}`)
             exitWithPause(1);
         }
     } else {
@@ -19,7 +19,7 @@ export async function requirementsEntry() {
 async function isGitInstalled(): Promise<boolean> {
     const code = await new Promise<number | null>((resolve, reject) => {
         const child = spawn("which", ["git"], {
-            stdio: 'inherit'
+            stdio: 'ignore'
         });
         child.once('error', reject);
         child.once('close', resolve);

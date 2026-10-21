@@ -8,17 +8,17 @@ import {
     isDirectoryExists,
     isFileExists
 } from "./utils/misc.js";
-import {downloadTarball, extractTarball, isValidTarball} from "./utils/tarball.js";
+import {extractArchive, isValidArchive} from "./utils/archive.js";
 import {SMSimpleVar, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";
 import * as MainConfig from "./main-config.js";
+import {downloadFile} from "./utils/response.js";
 
 const mainConfig = await MainConfig.get();
 
 export let launcherConfig = {
     path: path.join(process.cwd(), "launcher"),
-    tarballUrl: new URL(mainConfig.launcher.tarballUrl),
-    tarballFileName: "launcher.tar.gz",
+    archiveUrl: new URL(mainConfig.urls.launcherArchive),
     defaultConfigsPath: path.join(process.cwd(), "default-launcher-configs")
 };
 
@@ -26,8 +26,8 @@ const launcherStateMachine = new StateMachine("launcher");
 
 const enum LauncherState {
     creatingDir = "creating dir",
-    tarballDownloading = "tarball downloading",
-    tarballExtracting = "tarball extracting",
+    archiveDownloading = "archive downloading",
+    archiveExtracting = "archive extracting",
     defaultConfigsInstalling = "default configs installing",
     cleanup = "cleanup",
     fullyInstalled = "fully installed"
@@ -59,12 +59,13 @@ function isNetworkError(error: Error): boolean {
 }
 
 async function installLauncher() {
-    const launcherStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
+    const smLauncherStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
+    const smLauncherArchivePath = new SMSimpleVar<string>(launcherStateMachine, "archiveFileName", "");
 
     const launcherPath = launcherConfig.path;
     if (!await isDirectoryExists(launcherPath)) {
-        await launcherStatus.resetValue();
-    } else if (await launcherStatus.readValue() === LauncherState.fullyInstalled) {
+        await smLauncherStatus.resetValue();
+    } else if (await smLauncherStatus.readValue() === LauncherState.fullyInstalled) {
         console.log("Launcher already installed. Skipping...");
         return;
     }
@@ -72,54 +73,57 @@ async function installLauncher() {
     console.log("Installing launcher");
 
     while (true) {
-        if (await launcherStatus.readValue() === LauncherState.creatingDir) {
+        if (await smLauncherStatus.readValue() === LauncherState.creatingDir) {
             //cleanup
             if (await isDirectoryExists(launcherPath)) {
                 await rmdir(launcherPath);
             }
             await mkdir(launcherPath, {recursive: false});
-            await launcherStatus.writeValue(LauncherState.tarballDownloading);
+            await smLauncherStatus.writeValue(LauncherState.archiveDownloading);
         }
-        const launcherTarballFileName: string = launcherConfig.tarballFileName;
-        const launcherTarballPath: string = path.join(getTempPath(), launcherTarballFileName);
-        if (await launcherStatus.readValue() === LauncherState.tarballDownloading) {
-            //cleanup
-            if (await isFileExists(launcherTarballPath)) {
-                await rm(launcherTarballPath, {recursive: false, force: true});
-            }
-            const launcherTarballURL: URL = new URL(launcherConfig.tarballUrl);
-            await asyncRetryWrapper(
-                () => downloadTarball(launcherTarballURL, launcherTarballPath),
+        if (await smLauncherStatus.readValue() === LauncherState.archiveDownloading) {
+            const launcherArchiveURL: URL = new URL(launcherConfig.archiveUrl);
+            const launcherArchivePath = await asyncRetryWrapper<string>(
+                () => downloadFile(launcherArchiveURL, getTempPath()),
                 {shouldRetryError: isNetworkError}
             );
-            await launcherStatus.writeValue(LauncherState.tarballExtracting);
+            await smLauncherArchivePath.writeValue(launcherArchivePath);
+            await smLauncherStatus.writeValue(LauncherState.archiveExtracting);
         }
-        if (await launcherStatus.readValue() === LauncherState.tarballExtracting) {
+        if (await smLauncherStatus.readValue() === LauncherState.archiveExtracting) {
             //validating
-            if (!await isValidTarball(launcherTarballPath)) {
-                await launcherStatus.writeValue(LauncherState.tarballDownloading);
+            const launcherArchivePath = await smLauncherArchivePath.readValue();
+            if (
+                launcherArchivePath == smLauncherArchivePath.defaultValue ||
+                !await isValidArchive(launcherArchivePath)
+            ) {
+                await smLauncherStatus.writeValue(LauncherState.archiveDownloading);
                 continue;
             }
             //cleanup
             if (!await isDirectoryEmpty(launcherPath)) {
                 await cleanDirectory(launcherPath);
             }
-            await extractTarball(launcherTarballPath, launcherPath);
-            await launcherStatus.writeValue(LauncherState.defaultConfigsInstalling);
+            await extractArchive(launcherArchivePath, launcherPath);
+            await smLauncherStatus.writeValue(LauncherState.defaultConfigsInstalling);
         }
-        if (await launcherStatus.readValue() === LauncherState.defaultConfigsInstalling) {
+        if (await smLauncherStatus.readValue() === LauncherState.defaultConfigsInstalling) {
             console.log("Installing default configs");
             await cp(
                 launcherConfig.defaultConfigsPath, launcherConfig.path,
                 {recursive: true, force: true}
             );
             console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-            await launcherStatus.writeValue(LauncherState.cleanup);
+            await smLauncherStatus.writeValue(LauncherState.cleanup);
         }
-        if (await launcherStatus.readValue() == LauncherState.cleanup) {
+        if (await smLauncherStatus.readValue() == LauncherState.cleanup) {
             console.log("Cleanup");
-            await rm(launcherTarballPath, {recursive: false, force: true});
-            await launcherStatus.writeValue(LauncherState.fullyInstalled);
+            const launcherArchivePath = await smLauncherArchivePath.readValue();
+            if (launcherArchivePath != smLauncherArchivePath.defaultValue) {
+                await rm(launcherArchivePath, {recursive: false, force: true});
+            }
+            await smLauncherStatus.writeValue(LauncherState.fullyInstalled);
+            await smLauncherArchivePath.resetValue();
             break;
         }
     }

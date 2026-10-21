@@ -58,7 +58,7 @@ const enum GitInitStatus {
 }
 
 async function initGitClient(clientId: string, gitConfig: GitConfig) {
-    const initStatus = new SMSimpleSequenceVar<string>(
+    const smInitStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
         `client-${clientId}`,
         `initGitStatus`,
@@ -67,25 +67,25 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
     const clientPath = path.join(process.cwd(), clientId)
 
     if (!await isDirectoryExists(clientPath)) {
-        await initStatus.resetValue();
+        await smInitStatus.resetValue();
     } else if (!await isDirectoryExists(path.join(clientPath, ".git"))) {
-        await initStatus.writeValue(GitInitStatus.gitInit);
-    } else if (await initStatus.readValue() === GitInitStatus.gitInitStart) {
+        await smInitStatus.writeValue(GitInitStatus.gitInit);
+    } else if (await smInitStatus.readValue() === GitInitStatus.gitInitStart) {
         await rm(path.join(clientPath, ".git"));
-        await initStatus.writeValue(GitInitStatus.gitInit);
-    } else if (await initStatus.readValue() === GitInitStatus.fullyInit){
+        await smInitStatus.writeValue(GitInitStatus.gitInit);
+    } else if (await smInitStatus.readValue() === GitInitStatus.fullyInit){
         console.log("Client already initialising. Skipping...");
         return
     }
 
     console.log("Initialising client");
 
-    if (await initStatus.readValue() === GitInitStatus.creatingDir) {
+    if (await smInitStatus.readValue() === GitInitStatus.creatingDir) {
         await mkdir(clientPath, {recursive: false});
-        await initStatus.writeValue(GitInitStatus.gitInit);
+        await smInitStatus.writeValue(GitInitStatus.gitInit);
     }
-    if (await initStatus.readValue() === GitInitStatus.gitInit) {
-        await initStatus.writeValue(GitInitStatus.gitInitStart);
+    if (await smInitStatus.readValue() === GitInitStatus.gitInit) {
+        await smInitStatus.writeValue(GitInitStatus.gitInitStart);
         console.log("Initialising client git repository");
         await git.init({
             fs: fs,
@@ -99,10 +99,10 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
             remote: gitConfig.remote
         });
         console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-        await initStatus.writeValue(GitInitStatus.gitInitEnd);
+        await smInitStatus.writeValue(GitInitStatus.gitInitEnd);
     }
-    if (await initStatus.readValue() === GitInitStatus.gitInitEnd) {
-        await initStatus.writeValue(GitInitStatus.fullyInit);
+    if (await smInitStatus.readValue() === GitInitStatus.gitInitEnd) {
+        await smInitStatus.writeValue(GitInitStatus.fullyInit);
     }
 }
 
@@ -137,16 +137,16 @@ async function gitSyncLocalBranchWithRemote(
         checkout = "checkout"
     }
 
-    const gitSyncStatus = new SMSimpleSequenceVar<string>(
+    const smGitSyncStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
         `client-${clientId}`,
         `gitSyncStatus`,
         SyncStatus.idle
     );
-    if (await gitSyncStatus.readValue() == SyncStatus.idle) {
-        await gitSyncStatus.writeValue(SyncStatus.writeRef);
+    if (await smGitSyncStatus.readValue() == SyncStatus.idle) {
+        await smGitSyncStatus.writeValue(SyncStatus.writeRef);
     }
-    if (await gitSyncStatus.readValue() === SyncStatus.writeRef) {
+    if (await smGitSyncStatus.readValue() === SyncStatus.writeRef) {
         await git.writeRef({
             fs: fs,
             dir: dir,
@@ -154,9 +154,9 @@ async function gitSyncLocalBranchWithRemote(
             value: remoteHead,
             force: true
         });
-        await gitSyncStatus.writeValue(SyncStatus.checkout);
+        await smGitSyncStatus.writeValue(SyncStatus.checkout);
     }
-    if (await gitSyncStatus.readValue() === SyncStatus.checkout) {
+    if (await smGitSyncStatus.readValue() === SyncStatus.checkout) {
         let pBar: SingleBar | undefined;
         await git.checkout({
             fs: fs,
@@ -178,7 +178,7 @@ async function gitSyncLocalBranchWithRemote(
                 }
             }
         });
-        await gitSyncStatus.writeValue(SyncStatus.idle);
+        await smGitSyncStatus.writeValue(SyncStatus.idle);
     }
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }

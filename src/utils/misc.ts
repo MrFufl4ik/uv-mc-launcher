@@ -58,15 +58,20 @@ export async function cleanDirectory(directoryPath: string) {
     }
 }
 
-
-export function hideFileOnWindows(filePath: string) {
+export function hideFile_win32(filePath: string) {
     if (os.platform() == "win32") {
         execFile("attrib", ["+H", filePath]);
     }
 }
 
+export function getFileSuffix(filename: string): string {
+    const match = filename.match(/(\.[^.0-9][^.]*?(?:\.[^.0-9][^.]*)*)$/);
+    return match?.[1] ?? "";
+}
+
 export async function makeSymLink(targetPath: string, linkPath: string) {
     if (os.platform() == "win32") {
+        //todo add make-symlink-win32 to requirement
         const makeSymlinkWin32Binary = path.join(process.cwd(), "make-symlink-win32.exe");
         if (!await isFileExists(makeSymlinkWin32Binary)) {
             console.log(`${makeSymlinkWin32Binary} doesn't exists!`);
