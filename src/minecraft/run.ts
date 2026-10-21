@@ -5,6 +5,7 @@ import os from "node:os";
 import {ConsoleOpts, isDirectoryExists, makeSymLink} from "../utils/misc.js";
 import {mkdir} from "node:fs/promises";
 import * as MainConfig from "../main-config.js";
+import {exitWithPause} from "../index.js";
 
 const mainConfig = await MainConfig.get();
 
@@ -24,7 +25,7 @@ async function makePrismInstance(clientId: string) {
     const localInstancePath = path.join(process.cwd(), clientId);
     if (!await isDirectoryExists(localInstancePath)){
         console.log(`Files for client: "${clientId}" not found!`)
-        process.exit(1);
+        exitWithPause(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
     if (!await isDirectoryExists(linkedInstancePath)) await makeSymLink(localInstancePath, linkedInstancePath);

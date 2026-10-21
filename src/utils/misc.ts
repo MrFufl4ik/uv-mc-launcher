@@ -3,6 +3,7 @@ import * as cliProgress from "cli-progress";
 import os from "node:os";
 import {execFile, spawn} from "node:child_process";
 import path from "node:path";
+import {exitWithPause} from "../index.js";
 
 //console
 
@@ -69,7 +70,7 @@ export async function makeSymLink(targetPath: string, linkPath: string) {
         const makeSymlinkWin32Binary = path.join(process.cwd(), "make-symlink-win32.exe");
         if (!await isFileExists(makeSymlinkWin32Binary)) {
             console.log(`${makeSymlinkWin32Binary} doesn't exists!`);
-            process.exit(1);
+            exitWithPause(1);
         }
         await new Promise<void>((resolve, reject) => {
             const child = spawn("cmd.exe", ["/c", makeSymlinkWin32Binary, targetPath, linkPath], {

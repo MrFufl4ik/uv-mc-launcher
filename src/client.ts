@@ -7,6 +7,7 @@ import http from "isomorphic-git/http/node";
 import {SMSimpleSequenceVar, StateMachine} from "./statemachine.js";
 import type {SingleBar} from "cli-progress";
 import * as MainConfig from "./main-config.js";
+import {exitWithPause} from "./index.js";
 
 type GitConfig = {
     repository: string,
@@ -30,8 +31,8 @@ export async function clientEntry() {
     const clientId = mainConfig.run.clientId;
     const client = getClientByClientId(clientId)
     if (client === null){
-        console.log(`Client '${clientId}' not found in config!`)
-        process.exit(880001)
+        console.log(`Client '${clientId}' not found in config!`);
+        exitWithPause(1);
     }
     if (client.git === undefined){
         console.log(`Git not configured for client`)

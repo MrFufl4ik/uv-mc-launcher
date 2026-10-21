@@ -6,18 +6,17 @@ import lockfile from 'proper-lockfile';
 import {gameEntry} from "./minecraft/run.js";
 import {accountsEntry} from "./minecraft/account.js";
 import {ConsoleOpts, sleep} from "./utils/misc.js";
-import * as readline from "node:readline/promises";
-
-//todo add flag to disable global try catch in dev environment!
+import fs from "fs";
+import {requirementsEntry} from "./requirements.js";
 
 async function main() {
+    await requirementsEntry();
     await launcherEntry();
     await clientEntry();
     await accountsEntry();
     await gameEntry();
     console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
     sleep(1000 * 3);
-    //todo ждет завершения под win32 хотя не должен
 }
 
 async function mainWithLock() {
@@ -33,18 +32,26 @@ async function mainWithLock() {
             console.log('Application already started!');
             process.exit(1);
         }
+        //todo dev mode
         console.log(`${ConsoleOpts.red}Runtime error (contact to developer):${ConsoleOpts.reset} "${err}"`);
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout
-        });
-        await rl.question("Press any button to exit...");
-        throw err;
+        exitWithPause(1, err);
     } finally {
         if (release) {
             await release();
         }
     }
+}
+
+export function exitWithPause(code: number, err?: any): never {
+    process.stdout.write("Press Enter to exit...");
+    const buffer = Buffer.alloc(1);
+    try {
+        fs.readSync(0, buffer, 0, 1, null);
+    } catch {
+    }
+    //todo dev mode
+    if (err !== undefined) throw err;
+    process.exit(code);
 }
 
 await mainWithLock();

@@ -5,9 +5,13 @@ import YAML from "yaml";
 import {isFileExists} from "./utils/misc.js";
 
 export const mainSchema = z.object({
-    launcher: z.object({
-        tarballUrl: z.string()
-    }).default({tarballUrl: "https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz"}),
+    urls: z.object({
+        launcherArchive: z.string(),
+        mingitWin32Archive: z.string()
+    }).default({
+        launcherArchive: "https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz",
+        mingitWin32Archive: "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.1/MinGit-2.56.0-64-bit.zip"
+    }),
     account: z.object({
         name: z.string(),
         id: z.string().optional()
@@ -47,6 +51,6 @@ export async function get() {
     );
 }
 
-export async function set(data: object){
+export async function set(data: object) {
     await writeFile(configPath, YAML.stringify(mainSchema.parse(data)), {encoding: "utf8"});
 }

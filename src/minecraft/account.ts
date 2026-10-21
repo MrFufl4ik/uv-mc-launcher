@@ -6,6 +6,7 @@ import {z} from "zod";
 import * as MainConfig from "./../main-config.js";
 import {getTempPath} from "../temp.js";
 import {createUuid128, uuid128FromUsername} from "./uuid.js";
+import {exitWithPause} from "../index.js";
 
 enum AccountType {
     online = "Online",
@@ -70,7 +71,7 @@ export async function accountsEntry() {
     const mainConfig = await MainConfig.get();
     if (!isValidUsername(mainConfig.account.name)){
         console.log(`Account name "${mainConfig.account.name}" is not valid!`);
-        process.exit(1);
+        exitWithPause(1);
     }
     const account = await findUserAccount({name: mainConfig.account.name, id: mainConfig.account.id});
     if (account != undefined) {
