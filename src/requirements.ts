@@ -19,14 +19,16 @@ export async function requirementsEntry() {
 }
 
 async function isGitInstalled(): Promise<boolean> {
-    const code = await new Promise<number | null>((resolve, reject) => {
-        const child = spawn("which", ["git"], {
-            stdio: 'ignore'
+    return new Promise<boolean>((resolve) => {
+        const child = spawn("git", ["--version"], {
+            stdio: "ignore"
         });
-        child.once('error', reject);
-        child.once('close', resolve);
+
+        child.once("error", () => resolve(false));
+        child.once("close", (code) => {
+            resolve(code === 0);
+        });
     });
-    return code === 0;
 }
 
 async function isGitInstalled_win32(): Promise<boolean> {

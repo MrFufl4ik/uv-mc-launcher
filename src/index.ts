@@ -6,8 +6,8 @@ import lockfile from 'proper-lockfile';
 import {gameEntry} from "./minecraft/run.js";
 import {accountsEntry} from "./minecraft/account.js";
 import {ConsoleOpts, sleep} from "./utils/misc.js";
-import fs from "fs";
 import {requirementsEntry} from "./requirements.js";
+import * as readlineSync from "readline-sync";
 
 async function main() {
     await requirementsEntry();
@@ -43,12 +43,7 @@ async function mainWithLock() {
 }
 
 export function exitWithPause(code: number, err?: any): never {
-    process.stdout.write("Press Enter to exit...");
-    const buffer = Buffer.alloc(1);
-    try {
-        fs.readSync(0, buffer, 0, 1, null);
-    } catch {
-    }
+    readlineSync.question("Press Enter to exit...");
     //todo dev mode
     if (err !== undefined) throw err;
     process.exit(code);

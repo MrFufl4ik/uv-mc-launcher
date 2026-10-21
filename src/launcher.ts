@@ -1,13 +1,6 @@
 import {cp, mkdir, rm, rmdir} from "node:fs/promises";
 import path from "node:path";
-import {
-    asyncRetryWrapper,
-    cleanDirectory,
-    ConsoleOpts,
-    isDirectoryEmpty,
-    isDirectoryExists,
-    isFileExists
-} from "./utils/misc.js";
+import {asyncRetryWrapper, cleanDirectory, ConsoleOpts, isDirectoryEmpty, isDirectoryExists} from "./utils/misc.js";
 import {extractArchive, isValidArchive} from "./utils/archive.js";
 import {SMSimpleVar, StateMachine} from "./statemachine.js";
 import {getTempPath} from "./temp.js";

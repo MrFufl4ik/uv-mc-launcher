@@ -1,4 +1,4 @@
-import {ConsoleOpts, createProgressBar, isFileExists} from "./misc.js";
+import {ConsoleOpts, createProgressBar} from "./misc.js";
 import {Readable, Transform} from "node:stream";
 import {pipeline} from "node:stream/promises";
 import {createWriteStream} from "node:fs";
