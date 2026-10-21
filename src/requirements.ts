@@ -110,8 +110,7 @@ async function installMinGit_win32(): Promise<void> {
                 await cleanDirectory(mingitPath);
             }
             await extractArchive(launcherArchivePath, mingitPath);
-            await smStatus.writeValue(MingitState.fullyInstalled);
-            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
+            await smStatus.writeValue(MingitState.cleanup);
         }
         if (await smStatus.readValue() == MingitState.cleanup) {
             console.log("Cleanup");
@@ -121,6 +120,7 @@ async function installMinGit_win32(): Promise<void> {
             }
             await smStatus.writeValue(MingitState.fullyInstalled);
             await smMingitArchivePath.resetValue();
+            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
             break;
         }
     }

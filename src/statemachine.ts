@@ -87,12 +87,7 @@ export class SMSimpleVar<T extends string | number | boolean> {
     }
 
     protected buildJson(value: T): string {
-        switch (typeof value) {
-            case "string":
-                return `{"${this.valueName}":"${value}"}`;
-            default:
-                return `{"${this.valueName}":${value}}`;
-        }
+        return JSON.stringify({[this.valueName]: value});
     }
 
     async writeValue(value: T): Promise<void> {
@@ -124,12 +119,7 @@ export class SMSimpleSequenceVar<T extends string | number | boolean> extends SM
     }
 
     protected buildJson(value: T): string {
-        switch (typeof value) {
-            case "string":
-                return `{"${this.sequenceName}":{"${this.valueName}":"${value}"}}`;
-            default:
-                return `{"${this.sequenceName}":{"${this.valueName}":${value}}}`;
-        }
+        return JSON.stringify({[this.sequenceName]: {[this.valueName]: value}});
     }
 
     async readValue(): Promise<T> {

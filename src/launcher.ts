@@ -93,7 +93,6 @@ async function installLauncher() {
                 launcherConfig.defaultConfigsPath, launcherConfig.path,
                 {recursive: true, force: true}
             );
-            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
             await smStatus.writeValue(LauncherState.cleanup);
         }
         if (await smStatus.readValue() == LauncherState.cleanup) {
@@ -104,6 +103,7 @@ async function installLauncher() {
             }
             await smStatus.writeValue(LauncherState.fullyInstalled);
             await smLauncherArchivePath.resetValue();
+            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
             break;
         }
     }
