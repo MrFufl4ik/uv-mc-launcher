@@ -100,6 +100,29 @@ export async function makeSymLink(targetPath: string, linkPath: string) {
     }
 }
 
+//errors
+
+export function isNetworkError(error: Error): boolean {
+    const NetworkErrors = [
+        "UND_ERR_CONNECT_TIMEOUT",
+        "ENOTFOUND"
+    ];
+    if ("code" in error && typeof error.code === "string") {
+        return (
+            NetworkErrors.includes(error.code)
+        );
+    } else if ("cause" in error && error.cause instanceof Error) {
+        const cause = error.cause as Error & { code?: string };
+        if (typeof cause.code === "string") {
+            return (
+                NetworkErrors.includes(cause.code)
+            );
+        }
+    }
+
+    return false;
+}
+
 //other
 
 interface RetryOptions {
