@@ -1,4 +1,4 @@
-import {hideFile_win32, isFileExists} from "./utils/misc.js";
+import {hideFile_win32, isFileExists} from "./misc.js";
 import {readFile, rename, rm, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {getTempPath} from "./temp.js";

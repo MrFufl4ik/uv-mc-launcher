@@ -7,12 +7,12 @@ import {
     isDirectoryEmpty,
     isDirectoryExists,
     isNetworkError
-} from "./utils/misc.js";
-import {extractArchive, isValidArchive} from "./utils/archive.js";
-import {SMSimpleVar, StateMachine} from "./statemachine.js";
-import {getTempPath} from "./temp.js";
-import * as MainConfig from "./main-config.js";
-import {downloadFile} from "./utils/response.js";
+} from "./api/misc.js";
+import {extractArchive, isValidArchive} from "./api/archive.js";
+import {SMSimpleVar, StateMachine} from "./api/statemachine.js";
+import {getTempPath} from "./api/temp.js";
+import * as MainConfig from "./api/main-config.js";
+import {downloadFile} from "./api/response.js";
 
 const mainConfig = await MainConfig.get();
 

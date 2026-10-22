@@ -2,12 +2,20 @@ import {mkdir, rm} from "node:fs/promises";
 import git from "isomorphic-git";
 import fs from "fs";
 import path from "node:path";
-import {asyncRetryWrapper, ConsoleOpts, createProgressBar, isDirectoryExists} from "./utils/misc.js";
+import {asyncRetryWrapper, ConsoleOpts, createProgressBar, isDirectoryExists} from "./api/misc.js";
 import http from "isomorphic-git/http/node";
-import {SMSimpleSequenceVar, StateMachine} from "./statemachine.js";
+import {SMSimpleSequenceVar, StateMachine} from "./api/statemachine.js";
 import type {SingleBar} from "cli-progress";
-import * as MainConfig from "./main-config.js";
+import * as MainConfig from "./api/main-config.js";
 import {exitWithPause} from "./index.js";
+import type {ZClientT} from "./api/main-config.js";
+import simpleGit from 'simple-git';
+
+const clientStateMachine = new StateMachine("client");
+const mainConfig = await MainConfig.get();
+
+const clientsPath = path.join(process.cwd(), "clients")
+if (!await isDirectoryExists(clientsPath)) await mkdir(clientsPath, {recursive: false});
 
 type GitConfig = {
     repository: string,
@@ -17,25 +25,15 @@ type GitConfig = {
     authKey: string,
 }
 
-const clientStateMachine = new StateMachine("client");
-
-const mainConfig = await MainConfig.get();
-function getClientByClientId(clientId: string){
-    for (const client of mainConfig.clients){
-        if (client.id == clientId) return client;
-    }
-    return null;
-}
-
 export async function clientEntry() {
     const clientId = mainConfig.run.clientId;
-    const client = getClientByClientId(clientId)
+    const client: ZClientT | null = getClientByClientId(clientId)
     if (client === null){
-        console.log(`Client '${clientId}' not found in config!`);
+        console.log(`${ConsoleOpts.yellow}Client '${clientId}' not found in config!${ConsoleOpts.reset}`);
         exitWithPause(1);
     }
     if (client.git === undefined){
-        console.log(`Git not configured for client`)
+        console.log(`Git not configured for this client`)
         return
     }
     const gitConfig: GitConfig = {
@@ -49,15 +47,21 @@ export async function clientEntry() {
     await updateClient(client.id, gitConfig);
 }
 
-const enum GitInitStatus {
-    creatingDir = "creating dir",
-    gitInit = "git init",
-    gitInitStart = "git init start",
-    gitInitEnd = "git init end",
-    fullyInit = "fully init"
+function getClientByClientId(clientId: string): ZClientT | null{
+    for (const client of mainConfig.clients){
+        if (client.id == clientId) return client;
+    }
+    return null;
 }
 
 async function initGitClient(clientId: string, gitConfig: GitConfig) {
+    const enum GitInitStatus {
+        creatingDir = "creating dir",
+        gitInit = "git init",
+        gitInitStart = "git init start",
+        gitInitEnd = "git init end",
+        fullyInit = "fully init"
+    }
     const smInitStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
         `client-${clientId}`,

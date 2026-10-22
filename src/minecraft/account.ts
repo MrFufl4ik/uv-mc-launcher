@@ -1,10 +1,10 @@
 import path from "node:path";
 import {launcherConfig} from "../launcher.js";
 import {readFile, rename, writeFile} from "node:fs/promises";
-import {ConsoleOpts, isFileExists, unixTimestamp} from "../utils/misc.js";
+import {ConsoleOpts, isFileExists, unixTimestamp} from "../api/misc.js";
 import {z} from "zod";
-import * as MainConfig from "./../main-config.js";
-import {getTempPath} from "../temp.js";
+import * as MainConfig from "../api/main-config.js";
+import {getTempPath} from "../api/temp.js";
 import {createUuid128, uuid128FromUsername} from "./uuid.js";
 import {exitWithPause} from "../index.js";
 

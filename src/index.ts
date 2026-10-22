@@ -5,7 +5,7 @@ import path from "node:path";
 import lockfile from 'proper-lockfile';
 import {gameEntry} from "./minecraft/run.js";
 import {accountsEntry} from "./minecraft/account.js";
-import {ConsoleOpts, sleep} from "./utils/misc.js";
+import {ConsoleOpts, sleep} from "./api/misc.js";
 import {requirementsEntry} from "./requirements.js";
 import * as readlineSync from "readline-sync";
 

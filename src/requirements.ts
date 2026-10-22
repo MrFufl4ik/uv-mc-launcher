@@ -6,15 +6,15 @@ import {
     isDirectoryEmpty,
     isDirectoryExists,
     isNetworkError
-} from "./utils/misc.js";
+} from "./api/misc.js";
 import path from "node:path";
 import {exitWithPause} from "./index.js";
-import {SMSimpleSequenceVar, SMSimpleVar, StateMachine} from "./statemachine.js";
+import {SMSimpleSequenceVar, SMSimpleVar, StateMachine} from "./api/statemachine.js";
 import {mkdir, rm, rmdir} from "node:fs/promises";
-import {downloadFile} from "./utils/response.js";
-import {getTempPath} from "./temp.js";
-import {extractArchive, isValidArchive} from "./utils/archive.js";
-import * as MainConfig from "./main-config.js";
+import {downloadFile} from "./api/response.js";
+import {getTempPath} from "./api/temp.js";
+import {extractArchive, isValidArchive} from "./api/archive.js";
+import * as MainConfig from "./api/main-config.js";
 
 const mainConfig = await MainConfig.get();
 
