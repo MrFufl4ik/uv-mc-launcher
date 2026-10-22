@@ -25,7 +25,7 @@ async function makePrismInstance(clientId: string) {
     }
     const localInstancePath = getClientPath(clientId);
     if (!await isDirectoryExists(localInstancePath)){
-        console.log(`Files for client: "${clientId}" not found!`)
+        console.log(`${ConsoleOpts.yellow}Files for client: "${clientId}" not found!${ConsoleOpts.reset}`)
         exitWithPause(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);

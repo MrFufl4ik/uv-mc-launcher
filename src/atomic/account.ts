@@ -8,6 +8,8 @@ import {getTempPath} from "../api/temp.js";
 import {createUuid128, uuid128FromUsername} from "../api/minecraft/uuid.js";
 import {exitWithPause} from "../index.js";
 
+//todo this file can be split to api and atomic logic!
+
 enum AccountType {
     online = "Online",
     offline = "Offline"
