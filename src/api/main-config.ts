@@ -20,7 +20,7 @@ export type ZClientT = z.infer<typeof ClientSchema>;
 
 export const MainSchema = z.object({
     urls: z.object({
-        launcherArchive: z.string(),
+        launcherArchive: z.string(), //todo split win32 and posix
         mingitWin32Archive: z.string()
     }).default({
         launcherArchive: "https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz",
