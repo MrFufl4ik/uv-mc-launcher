@@ -14,7 +14,7 @@ async function main() {
     await launcherEntry();
     await clientEntry();
     await accountsEntry();
-    // await runGameEntry();
+    await runGameEntry();
     console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
     sleep(1000 * 3);
 }
