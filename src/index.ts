@@ -3,8 +3,8 @@ import {launcherEntry} from "./launcher.js";
 import {writeFile} from "node:fs/promises";
 import path from "node:path";
 import lockfile from 'proper-lockfile';
-import {gameEntry} from "./minecraft/run.js";
-import {accountsEntry} from "./minecraft/account.js";
+import {gameEntry} from "./run.js";
+import {accountsEntry} from "./account.js";
 import {ConsoleOpts, sleep} from "./api/misc.js";
 import {requirementsEntry} from "./requirements.js";
 import * as readlineSync from "readline-sync";
@@ -13,8 +13,8 @@ async function main() {
     await requirementsEntry();
     await launcherEntry();
     await clientEntry();
-    await accountsEntry();
-    await gameEntry();
+    // await accountsEntry();
+    // await gameEntry();
     console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
     sleep(1000 * 3);
 }
