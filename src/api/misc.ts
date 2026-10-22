@@ -105,7 +105,11 @@ export async function makeSymLink(targetPath: string, linkPath: string) {
 export function isNetworkError(error: Error): boolean {
     const NetworkErrors = [
         "UND_ERR_CONNECT_TIMEOUT",
-        "ENOTFOUND"
+        "ENOTFOUND",
+        "ETIMEDOUT",
+        "ECONNRESET",
+        "ECONNREFUSED",
+        "EAI_AGAIN"
     ];
     if ("code" in error && typeof error.code === "string") {
         return (

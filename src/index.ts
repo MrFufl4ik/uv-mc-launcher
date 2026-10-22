@@ -1,20 +1,20 @@
-import {clientEntry} from "./client.js";
-import {launcherEntry} from "./launcher.js";
+import {clientEntry} from "./atomic/client.js";
+import {launcherEntry} from "./atomic/launcher.js";
 import {writeFile} from "node:fs/promises";
 import path from "node:path";
 import lockfile from 'proper-lockfile';
-import {gameEntry} from "./run.js";
-import {accountsEntry} from "./account.js";
 import {ConsoleOpts, sleep} from "./api/misc.js";
-import {requirementsEntry} from "./requirements.js";
+import {requirementsEntry} from "./atomic/requirements.js";
 import * as readlineSync from "readline-sync";
+import {accountsEntry} from "./atomic/account.js";
+import {runGameEntry} from "./atomic/run-game.js";
 
 async function main() {
     await requirementsEntry();
     await launcherEntry();
     await clientEntry();
-    // await accountsEntry();
-    // await gameEntry();
+    await accountsEntry();
+    // await runGameEntry();
     console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
     sleep(1000 * 3);
 }

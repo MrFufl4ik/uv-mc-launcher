@@ -10,7 +10,6 @@
     "build-sea": "node --build-sea sea-config.json",
     "build-sea-win32": "node --build-sea sea-config-win32.json",
     "build": "npm run build-ts && npm run build-es && npm run build-sea && npm run build-sea-win32",
-    "postinstall": "patch-package",
     "test": "echo Das is good!"
   },
   "keywords": [],
@@ -24,7 +23,6 @@
     "@types/readline-sync": "^1.4.8",
     "@types/unzipper": "^0.10.11",
     "esbuild": "^0.28.2",
-    "patch-package": "^8.0.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
@@ -32,7 +30,6 @@
     "@aws-sdk/client-s3": "^3.1154.0",
     "ci": "^2.3.0",
     "cli-progress": "^3.12.0",
-    "isomorphic-git": "^1.42.2",
     "proper-lockfile": "^4.1.2",
     "readline-sync": "^1.4.10",
     "simple-git": "^4.0.2",

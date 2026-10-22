@@ -1,12 +1,12 @@
 import path from "node:path";
 import {launcherConfig} from "./launcher.js";
 import {readFile, rename, writeFile} from "node:fs/promises";
-import {ConsoleOpts, isFileExists, unixTimestamp} from "./api/misc.js";
+import {ConsoleOpts, isFileExists, unixTimestamp} from "../api/misc.js";
 import {z} from "zod";
-import * as MainConfig from "./api/main-config.js";
-import {getTempPath} from "./api/temp.js";
-import {createUuid128, uuid128FromUsername} from "./minecraft/uuid.js";
-import {exitWithPause} from "./index.js";
+import * as MainConfig from "../api/main-config.js";
+import {getTempPath} from "../api/temp.js";
+import {createUuid128, uuid128FromUsername} from "../api/minecraft/uuid.js";
+import {exitWithPause} from "../index.js";
 
 enum AccountType {
     online = "Online",

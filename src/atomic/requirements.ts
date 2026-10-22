@@ -1,20 +1,21 @@
 import os from "node:os";
 import {spawn} from "node:child_process";
 import {
-    asyncRetryWrapper, cleanDirectory,
+    asyncRetryWrapper,
+    cleanDirectory,
     ConsoleOpts,
     isDirectoryEmpty,
     isDirectoryExists,
     isNetworkError
-} from "./api/misc.js";
+} from "../api/misc.js";
 import path from "node:path";
-import {exitWithPause} from "./index.js";
-import {SMSimpleSequenceVar, SMSimpleVar, StateMachine} from "./api/statemachine.js";
+import {exitWithPause} from "../index.js";
+import {SMSimpleSequenceVar, StateMachine} from "../api/statemachine.js";
 import {mkdir, rm, rmdir} from "node:fs/promises";
-import {downloadFile} from "./api/response.js";
-import {getTempPath} from "./api/temp.js";
-import {extractArchive, isValidArchive} from "./api/archive.js";
-import * as MainConfig from "./api/main-config.js";
+import {downloadFile} from "../api/response.js";
+import {getTempPath} from "../api/temp.js";
+import {extractArchive, isValidArchive} from "../api/archive.js";
+import * as MainConfig from "../api/main-config.js";
 
 const mainConfig = await MainConfig.get();
 
@@ -54,6 +55,7 @@ async function installMinGit_win32(): Promise<void> {
         cleanup = "cleanup",
         fullyInstalled = "fully installed"
     }
+
     const sequenceName = "mingit";
     const smStatus = new SMSimpleSequenceVar<string>(
         requirementsStateMachine,
@@ -95,7 +97,7 @@ async function installMinGit_win32(): Promise<void> {
             await smMingitArchivePath.writeValue(mingitArchivePath);
             await smStatus.writeValue(MingitState.archiveExtracting);
         }
-        if (await smStatus.readValue() === MingitState.archiveExtracting){
+        if (await smStatus.readValue() === MingitState.archiveExtracting) {
             //validating
             const launcherArchivePath = await smMingitArchivePath.readValue();
             if (

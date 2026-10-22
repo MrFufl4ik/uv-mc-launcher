@@ -7,12 +7,12 @@ import {
     isDirectoryEmpty,
     isDirectoryExists,
     isNetworkError
-} from "./api/misc.js";
-import {extractArchive, isValidArchive} from "./api/archive.js";
-import {SMSimpleVar, StateMachine} from "./api/statemachine.js";
-import {getTempPath} from "./api/temp.js";
-import * as MainConfig from "./api/main-config.js";
-import {downloadFile} from "./api/response.js";
+} from "../api/misc.js";
+import {extractArchive, isValidArchive} from "../api/archive.js";
+import {SMSimpleVar, StateMachine} from "../api/statemachine.js";
+import {getTempPath} from "../api/temp.js";
+import * as MainConfig from "../api/main-config.js";
+import {downloadFile} from "../api/response.js";
 
 const mainConfig = await MainConfig.get();
 
@@ -29,7 +29,6 @@ export async function launcherEntry() {
 }
 
 
-
 async function installLauncher() {
     const enum LauncherState {
         creatingDir = "creating dir",
@@ -39,6 +38,7 @@ async function installLauncher() {
         cleanup = "cleanup",
         fullyInstalled = "fully installed"
     }
+
     const smStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
     const smLauncherArchivePath = new SMSimpleVar<string>(launcherStateMachine, "archiveFileName", "");
 

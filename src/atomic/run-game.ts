@@ -2,15 +2,16 @@ import {spawn} from "node:child_process";
 import path from "node:path";
 import {launcherConfig} from "./launcher.js";
 import os from "node:os";
-import {ConsoleOpts, isDirectoryExists, makeSymLink} from "./api/misc.js";
+import {ConsoleOpts, isDirectoryExists, makeSymLink} from "../api/misc.js";
 import {mkdir} from "node:fs/promises";
-import * as MainConfig from "./api/main-config.js";
-import {exitWithPause} from "./index.js";
+import * as MainConfig from "../api/main-config.js";
+import {exitWithPause} from "../index.js";
+import {getClientPath} from "./client.js";
 
 const mainConfig = await MainConfig.get();
 
 //todo add instance lock file check!
-export async function gameEntry() {
+export async function runGameEntry() {
     const clientId = mainConfig.run.clientId;
     await makePrismInstance(clientId);
     await runClient(clientId);
@@ -22,12 +23,13 @@ async function makePrismInstance(clientId: string) {
     if (!await isDirectoryExists(prismLauncherInstancesPath)) {
         await mkdir(prismLauncherInstancesPath, {recursive: false});
     }
-    const localInstancePath = path.join(process.cwd(), clientId);
+    const localInstancePath = getClientPath(clientId);
     if (!await isDirectoryExists(localInstancePath)){
         console.log(`Files for client: "${clientId}" not found!`)
         exitWithPause(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
+    //todo this moment not atomic user can move your modpack to instances folder!
     if (!await isDirectoryExists(linkedInstancePath)) await makeSymLink(localInstancePath, linkedInstancePath);
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
