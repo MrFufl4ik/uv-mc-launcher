@@ -1,10 +1,6 @@
-import {mkdir, rm, rmdir} from "node:fs/promises";
-import git from "isomorphic-git";
-import fs from "fs";
-import http from "isomorphic-git/http/node";
-import type {SingleBar} from "cli-progress";
+import {mkdir} from "node:fs/promises";
 import path from "node:path";
-import {asyncRetryWrapper, ConsoleOpts, createProgressBar, isDirectoryExists} from "./api/misc.js";
+import {ConsoleOpts, isDirectoryExists} from "./api/misc.js";
 import {SMSimpleSequenceVar, StateMachine} from "./api/statemachine.js";
 import * as MainConfig from "./api/main-config.js";
 import {exitWithPause} from "./index.js";
@@ -114,24 +110,24 @@ async function initGitClient(clientId: string, gitConfig: GitConfig) {
 
 }
 
-function isTimeoutError(error: Error): boolean {
-    return (
-        (
-            ("code" in error && typeof error.code === "string") &&
-            [
-                "ETIMEDOUT",
-                "ECONNRESET",
-                "ECONNREFUSED",
-                "EAI_AGAIN",
-                "UND_ERR_CONNECT_TIMEOUT"
-            ].includes(error.code)
-        )
-        ||
-        [
-            "Request timed out"
-        ].includes(error.message)
-    );
-}
+// function isTimeoutError(error: Error): boolean {
+//     return (
+//         (
+//             ("code" in error && typeof error.code === "string") &&
+//             [
+//                 "ETIMEDOUT",
+//                 "ECONNRESET",
+//                 "ECONNREFUSED",
+//                 "EAI_AGAIN",
+//                 "UND_ERR_CONNECT_TIMEOUT"
+//             ].includes(error.code)
+//         )
+//         ||
+//         [
+//             "Request timed out"
+//         ].includes(error.message)
+//     );
+// }
 
 // async function gitSyncLocalBranchWithRemote(
 //     clientId: string,
