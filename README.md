@@ -1,10 +1,7 @@
-<div align="center">
 # [mrfufl4ik](https://github.com/mrfufl4ik)/[uv-mc-launcher](https://github.com/mrfufl4ik/uv-mc-launcher)
 
 Is a so convenient way to deliver minecraft to your users with your custom instance.
 This software is not a launcher in the literal sense of the word! It’s a wrapper over [Prism Launcher](https://github.com/prismlauncher/PrismLauncher).
-
-</div>
 
 > [!CAUTION]
 >
