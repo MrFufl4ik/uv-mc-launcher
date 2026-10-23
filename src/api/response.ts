@@ -90,7 +90,7 @@ export async function downloadFile(url: URL, destinationPath: string) {
     const resultPath = path.join(destinationPath, fileName);
     try {
         await pipeline(
-            Readable.fromWeb(<ReadableStream>response.body),
+            Readable.fromWeb(response.body as any),
             progressTransform,
             createWriteStream(resultPath)
         );
