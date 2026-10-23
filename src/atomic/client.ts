@@ -1,4 +1,4 @@
-import {mkdir, rmdir} from "node:fs/promises";
+import {mkdir, rm, rmdir} from "node:fs/promises";
 import path from "node:path";
 import {asyncRetryWrapper, ConsoleOpts, createProgressBar, isDirectoryExists, isNetworkError} from "../api/misc.js";
 import {SMSimpleSequenceVar, StateMachine} from "../api/statemachine.js";
@@ -122,44 +122,28 @@ async function gitResolveRef(git: SimpleGit, ref: string): Promise<string | null
     }
 }
 
-
-async function gitWriteRef(git: SimpleGit, ref: string, sha: string): Promise<void> {
-    await git.raw(['update-ref', ref, sha]);
+async function gitExecuteUpdateEntry(
+    git: SimpleGit, repoPath: string, remoteHead: string,
+    writeList: string[], removeList: string[]
+) {
+    for (let i = 0; i < writeList.length; i += 200) {
+        await git.raw(['checkout', remoteHead, '--', ...writeList.slice(i, i + 200)]);
+    }
+    for (const entry of removeList) {
+        await rm(path.join(repoPath, entry), {force: true});
+    }
+    await git.raw(['reset', '--mixed', remoteHead]);
 }
 
-async function gitSyncLocalBranchWithRemote(
-    clientId: string,
-    baseDir: string, branch: string, localRef: string, remoteHead: string
-) {
-    const enum SyncStatus {
-        idle = "idle",
-        writeRef = "write ref",
-        checkout = "checkout"
-    }
-
-    const smStatus = new SMSimpleSequenceVar<string>(
-        clientStateMachine,
-        `client-${clientId}`,
-        `gitSyncStatus`,
-        SyncStatus.idle
+function successUpdateMessage(localHead: string | null, remoteHead: string){
+    const localVer = localHead ? localHead.slice(0, 7) : "init state";
+    const remoteVer = remoteHead.slice(0, 7);
+    console.log(
+        "Client updated" + " " +
+        `${ConsoleOpts.cyan}"${localVer}"${ConsoleOpts.reset}` +
+        " -> " +
+        `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
     );
-
-    const clientPath = getClientPath(clientId);
-
-    if (await smStatus.readValue() == SyncStatus.idle) {
-        await smStatus.writeValue(SyncStatus.writeRef);
-    }
-    if (await smStatus.readValue() === SyncStatus.writeRef) {
-        const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
-        await gitWriteRef(gitInstance, localRef, remoteHead);
-        await smStatus.writeValue(SyncStatus.checkout);
-    }
-    if (await smStatus.readValue() === SyncStatus.checkout) {
-        const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath,});
-        await gitInstance.checkout(["--force", branch]);
-        await smStatus.writeValue(SyncStatus.idle);
-    }
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function updateClient(clientId: string, gitConfig: GitConfig) {
@@ -169,91 +153,169 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
         idle = "idle",
         fetch = "fetch",
         headsChecking = "heads checking",
-        checkout = "checkout"
+        //on first install
+        pull = "pull",
+        //on update
+        planing = "planing",
+        update = "update"
     }
 
     const clientPath = getClientPath(clientId);
     const smStatus = new SMSimpleSequenceVar<string>(
         clientStateMachine,
         `client-${clientId}`,
-        `updateStatus`,
+        "updateStatus",
         UpdateStatus.idle
     );
     const smRemoteHead = new SMSimpleSequenceVar<string>(
         clientStateMachine,
         `client-${clientId}`,
-        `remoteHead`,
+        "remoteHead",
         ""
     );
+    const smWriteList = new SMSimpleSequenceVar<string[]>(
+        clientStateMachine,
+        `client-${clientId}`,
+        "writeList",
+        []
+    );
+    const smRemoveList = new SMSimpleSequenceVar<string[]>(
+        clientStateMachine,
+        `client-${clientId}`,
+        "removeList",
+        []
+    );
 
-    if (await smStatus.readValue() === UpdateStatus.idle) {
-        await smStatus.writeValue(UpdateStatus.fetch);
-    }
 
-    const branch = gitConfig.branch;
-    const remoteRef = `refs/remotes/origin/${branch}`;
-    const localRef = `refs/heads/${branch}`;
+    const remoteRef = `refs/remotes/origin/${gitConfig.branch}`;
+    const localRef = `refs/heads/${gitConfig.branch}`;
 
-    if (await smStatus.readValue() === UpdateStatus.fetch) {
-        let pBar: SingleBar | undefined;
-        const httpExtraHeader = `http.extraHeader=Authorization: Basic ${Buffer
-            .from(`x-access-token:${gitConfig.authKey}`)
-            .toString('base64')}`;
-        const gitInstance = simpleGit({
-            binary: getGitBinary(),
-            baseDir: clientPath,
-            progress(data: SimpleGitProgressEvent) {
-                if (pBar === undefined && data.progress === 1) {
-                    pBar = createProgressBar("Updating", "E");
-                    pBar.start(data.total, 0);
-                }
-                if (pBar !== undefined) {
-                    if (data.processed > pBar.getProgress()) pBar.update(data.processed);
-                    if (data.processed === data.total) {
-                        pBar.stop();
-                    }
-                }
-            },
-            config: [httpExtraHeader]
-        });
-
-        await asyncRetryWrapper(() => gitInstance.fetch(gitConfig.remote, branch, ["--depth=1"]),
-            {shouldRetryError: isNetworkError});
-
-        await smStatus.writeValue(UpdateStatus.headsChecking);
-    }
-
-    if (await smStatus.readValue() === UpdateStatus.headsChecking) {
-        const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
-        const remoteHead = await gitResolveRef(gitInstance, remoteRef);
-        const localHead = await gitResolveRef(gitInstance, localRef);
-        if (!remoteHead) throw new Error(`No remote ref of ${remoteRef}`);
-
-        if (localHead === remoteHead) {
-            console.log(`${ConsoleOpts.green}Client is already up to date${ConsoleOpts.reset}`);
-            await smStatus.resetValue();
-            return;
+    while (true) {
+        if (await smStatus.readValue() === UpdateStatus.idle) {
+            await smStatus.writeValue(UpdateStatus.fetch);
         }
 
-        await smRemoteHead.writeValue(remoteHead);
-        await smStatus.writeValue(UpdateStatus.checkout);
-    }
+        if (await smStatus.readValue() === UpdateStatus.fetch) {
+            let pBar: SingleBar | undefined;
+            const httpExtraHeader = `http.extraHeader=Authorization: Basic ${Buffer
+                .from(`x-access-token:${gitConfig.authKey}`)
+                .toString('base64')}`;
+            const gitInstance = simpleGit({
+                binary: getGitBinary(),
+                baseDir: clientPath,
+                progress(data: SimpleGitProgressEvent) {
+                    if (pBar === undefined && data.progress === 1) {
+                        pBar = createProgressBar("Updating", "E");
+                        pBar.start(data.total, 0);
+                    }
+                    if (pBar !== undefined) {
+                        if (data.processed > pBar.getProgress()) pBar.update(data.processed);
+                        if (data.processed === data.total) {
+                            pBar.stop();
+                        }
+                    }
+                },
+                config: [httpExtraHeader]
+            });
 
-    if (await smStatus.readValue() === UpdateStatus.checkout) {
-        const remoteHead = await smRemoteHead.readValue();
-        const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
-        const localHead = await gitResolveRef(gitInstance, localRef);
+            await asyncRetryWrapper(() => gitInstance.fetch(gitConfig.remote, gitConfig.branch, ["--depth=1"]),
+                {shouldRetryError: isNetworkError});
 
-        const localVer = localHead ? localHead.slice(0, 7) : "init state";
-        const remoteVer = remoteHead.slice(0, 7);
-        console.log(
-            "Client updated" + " " +
-            `${ConsoleOpts.cyan}"${localVer}"${ConsoleOpts.reset}` +
-            " -> " +
-            `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
-        );
-        await gitSyncLocalBranchWithRemote(clientId, clientPath, branch, localRef, remoteHead);
-        await smStatus.resetValue();
+            await smStatus.writeValue(UpdateStatus.headsChecking);
+        }
+
+        if (await smStatus.readValue() === UpdateStatus.headsChecking) {
+            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const remoteHead = await gitResolveRef(gitInstance, remoteRef);
+            const localHead = await gitResolveRef(gitInstance, localRef);
+            if (!remoteHead) throw new Error(`No remote ref of ${remoteRef}`);
+
+            if (localHead === remoteHead) {
+                console.log(`${ConsoleOpts.green}Client is already up to date${ConsoleOpts.reset}`);
+                await smStatus.resetValue();
+                break;
+            }
+
+            await smRemoteHead.writeValue(remoteHead);
+
+            if (localHead === null) {
+                await smStatus.writeValue(UpdateStatus.pull);
+                continue;
+            }
+
+            await smStatus.writeValue(UpdateStatus.planing);
+        }
+
+        //on first install
+        if (await smStatus.readValue() === UpdateStatus.pull) {
+            const remoteHead = await smRemoteHead.readValue();
+            if (remoteHead === smRemoteHead.defaultValue) {
+                await smStatus.resetValue();
+                continue;
+            }
+            const httpExtraHeader = `http.extraHeader=Authorization: Basic ${Buffer
+                .from(`x-access-token:${gitConfig.authKey}`)
+                .toString('base64')}`;
+            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath, config: [httpExtraHeader]});
+            const localHead = await gitResolveRef(gitInstance, localRef);
+
+            await gitInstance.pull(gitConfig.remote, gitConfig.branch);
+            successUpdateMessage(localHead, remoteHead)
+            await smStatus.resetValue();
+            break;
+        }
+
+        //on update
+        if (await smStatus.readValue() === UpdateStatus.planing) {
+            const remoteHead = await smRemoteHead.readValue();
+            if (remoteHead === smRemoteHead.defaultValue) {
+                await smStatus.resetValue();
+                continue;
+            }
+
+            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const localHead = await gitResolveRef(gitInstance, localRef);
+            if (localHead === null) throw new Error("Corrupted git local repository!");
+
+            const diffOut = await gitInstance.raw([
+                'diff', '--name-status', '--no-renames', '-z', localHead, remoteHead,
+            ]);
+            const tokens = diffOut.split('\0').filter(Boolean);
+
+            let writeList: string[] = [];
+            let removeList: string[] = [];
+            for (let i = 0; i + 1 < tokens.length; i += 2) {
+                const status = tokens[i];
+                const forWrite = tokens[i + 1];
+                if (status === undefined || forWrite === undefined) continue;
+                (status === 'D' ? removeList : writeList).push(forWrite);
+            }
+
+            await smWriteList.writeValue(writeList);
+            await smRemoveList.writeValue(removeList);
+            await smStatus.writeValue(UpdateStatus.update);
+        }
+
+        if (await smStatus.readValue() === UpdateStatus.update) {
+            const remoteHead = await smRemoteHead.readValue();
+            if (remoteHead === smRemoteHead.defaultValue) {
+                await smStatus.resetValue();
+                continue;
+            }
+            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const localHead = await gitResolveRef(gitInstance, localRef);
+            if (localHead === null) throw new Error("Corrupted git local repository!");
+
+
+            const writeList: string[] = await smWriteList.readValue();
+            const removeList: string[] = await smRemoveList.readValue();
+
+            await gitExecuteUpdateEntry(gitInstance, clientPath, remoteHead, writeList, removeList);
+            successUpdateMessage(localHead, remoteHead)
+            await smStatus.resetValue();
+            await smWriteList.resetValue();
+            await smRemoveList.resetValue();
+            break;
+        }
     }
 }
-

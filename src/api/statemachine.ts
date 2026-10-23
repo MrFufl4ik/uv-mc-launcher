@@ -75,7 +75,7 @@ export class StateMachine {
     }
 }
 
-export class SMSimpleVar<T extends string | number | boolean> {
+export class SMSimpleVar<T extends string | number | boolean | string[] | number[] | boolean []> {
     protected stateMachine: StateMachine;
     protected readonly valueName: string;
     public readonly defaultValue: T;
@@ -110,7 +110,7 @@ export class SMSimpleVar<T extends string | number | boolean> {
     }
 }
 
-export class SMSimpleSequenceVar<T extends string | number | boolean> extends SMSimpleVar<T> {
+export class SMSimpleSequenceVar<T extends string | number | boolean | string[] | number[] | boolean []> extends SMSimpleVar<T> {
     protected sequenceName: string;
 
     constructor(stateMachine: StateMachine, sequenceName: string, valueName: string, defaultValue: T) {

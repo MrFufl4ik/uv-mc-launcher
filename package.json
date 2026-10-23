@@ -9,9 +9,9 @@
     "build-es": "esbuild src/index.ts --bundle --platform=node --format=esm --target=node26 --minify '--banner:js=import { createRequire } from \"node:module\"; const require = createRequire(import.meta.url);' --outfile=build/uv-mc-launcher.mjs",
     "build-sea": "node --build-sea sea-config.json",
     "build-icon-win32": "magick assets/uv-mv-launcher-icon.png -define icon:auto-resize=256,128,64,48,32,16 assets/uv-mv-launcher-icon.ico",
-    "set-icon-win32": "node set-icon-win32.mjs",
+    "set-icon-win32": "tsx src/set-icon-win32.ts",
     "build-sea-win32": "node --build-sea sea-config-win32.json",
-    "build": "npm run build-ts && npm run build-es && npm run build-sea && npm run build-sea-win32 && npm run set-icon-win32 && npm run set-icon-win32",
+    "build": "npm run build-ts && npm run build-es && npm run build-sea && npm run build-sea-win32 && npm run build-icon-win32 && npm run set-icon-win32",
     "test": "echo Das is good!"
   },
   "keywords": [],
