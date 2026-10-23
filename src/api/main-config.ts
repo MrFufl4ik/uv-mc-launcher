@@ -2,7 +2,8 @@ import {readFile, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {z} from "zod";
 import YAML from "yaml";
-import {isFileExists} from "./misc.js";
+import {ConsoleOpts, isFileExists} from "./misc.js";
+import {exitWithPause} from "../index.js";
 
 export const ClientSchema = z.object({
     id: z.string(),
@@ -38,16 +39,19 @@ export const MainSchema = z.object({
     })
 });
 
-async function createConfig() {
-    await writeFile(
-        configPath,
-        YAML.stringify(MainSchema.parse({})),
-        "utf8"
-    );
-}
+// async function createConfig() {
+//     await writeFile(
+//         configPath,
+//         YAML.stringify(MainSchema.parse({})),
+//         "utf8"
+//     );
+// }
 
 const configPath = path.join(process.cwd(), "config.yaml");
-if (!await isFileExists(configPath)) await createConfig();
+if (!await isFileExists(configPath)){
+    console.log(`${ConsoleOpts.yellow}Please create a config.yaml file!${ConsoleOpts.reset}`)
+    exitWithPause(1);
+}
 
 export async function get() {
     return MainSchema.parse(
