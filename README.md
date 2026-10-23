@@ -14,7 +14,7 @@ This software is not a launcher in the literal sense of the word! It’s a wrapp
 ## Using
 
 ### Download
-Download latest archive from [latest release](https://github.com/MrFufl4ik/uv-mc-launcher/releases/latest). 
+Download and extract latest archive from [latest release](https://github.com/MrFufl4ik/uv-mc-launcher/releases/latest). 
 
 ### Configuration file
 ```yaml
@@ -35,7 +35,7 @@ clients:
       userName: "minecraftdev1"
       authKey: "super-secret-authkey!"
 run:
-  clientId: "test-client" # client to run
+  clientId: "test-client" # client to run.
 ```
 *PS: In the future, files will be able to be encrypted.*
 ### Run
