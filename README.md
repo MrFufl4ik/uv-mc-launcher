@@ -48,7 +48,7 @@ Run `uv-mc-launcher.exe` binary.
 The software itself does not require administrator rights.
 However, the launcher may request them in order to create a symlink via `make-symlink-win32.exe`.
 ## Build process
-To build, you need **git** and **node v26.12.0**. What is written below is relevant for **Linux**. For Windows, some steps will look different!
+To build, you need **node v26.12.0** and **magick**. What is written below is relevant for **Linux**. For Windows, some steps will look different!
 ### Clone remote repo
 ```bash
 git clone https://github.com/MrFufl4ik/uv-mc-launcher.git
@@ -69,6 +69,6 @@ npm run build-ts          # build typescript (/build/dist/)
 npm run build-es          # esbuild process (/build/)
 npm run build-sea         # build posix bin (/build/)
 npm run build-sea-win32   # build win32 bin (/build/)
-npm run build-icon-win32  # build icon file from png (/assets/)
+npm run build-icon-win32  # build icon file from png with magick (/assets/)
 npm run set-icon-win32    # set icon file to win32 bin
 ```
