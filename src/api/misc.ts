@@ -45,6 +45,19 @@ export async function isFileExists(path: string): Promise<boolean> {
     }
 }
 
+export async function isSymlinkExists(path: string): Promise<boolean> {
+    try {
+        return (await stat(path)).isSymbolicLink();
+    } catch {
+        return false;
+    }
+}
+
+export async function isEntryExists(path: string): Promise<boolean> {
+    return isDirectoryExists(path) || isFileExists(path);
+}
+
+
 export async function isDirectoryEmpty(path: string) {
     const files = await readdir(path);
     return files.length === 0;

@@ -2,7 +2,7 @@ import {spawn} from "node:child_process";
 import path from "node:path";
 import {launcherConfig} from "./launcher.js";
 import os from "node:os";
-import {ConsoleOpts, isDirectoryExists, makeSymLink} from "../api/misc.js";
+import {ConsoleOpts, isDirectoryExists, isEntryExists, isSymlinkExists, makeSymLink} from "../api/misc.js";
 import {mkdir} from "node:fs/promises";
 import * as MainConfig from "../api/main-config.js";
 import {exitWithPause} from "../index.js";
@@ -11,6 +11,7 @@ import {getClientPath} from "./client.js";
 const mainConfig = await MainConfig.get();
 
 //todo add instance lock file check!
+//todo add check for instance.cfg!
 export async function runGameEntry() {
     const clientId = mainConfig.run.clientId;
     await makePrismInstance(clientId);
@@ -24,18 +25,23 @@ async function makePrismInstance(clientId: string) {
         await mkdir(prismLauncherInstancesPath, {recursive: false});
     }
     const localInstancePath = getClientPath(clientId);
-    if (!await isDirectoryExists(localInstancePath)){
-        console.log(`${ConsoleOpts.yellow}Files for client: "${clientId}" not found!${ConsoleOpts.reset}`)
+    if (!await isDirectoryExists(localInstancePath)) {
+        console.log(`${ConsoleOpts.yellow}Files for client: "${clientId}" not found!${ConsoleOpts.reset}`);
         exitWithPause(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
-    //todo this moment not atomic user can move your modpack to instances folder!
-    if (!await isDirectoryExists(linkedInstancePath)) await makeSymLink(localInstancePath, linkedInstancePath);
+    if (!await isSymlinkExists(linkedInstancePath)) {
+        if (!await isEntryExists(linkedInstancePath)) {
+            await makeSymLink(localInstancePath, linkedInstancePath);
+        } else {
+            console.log(`${ConsoleOpts.yellow}Entry "${clientId}" founded in instances place. Symlink will not be created!${ConsoleOpts.reset}`);
+        }
+    }
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function runClient(clientId: string) {
-    console.log("Running game")
+    console.log("Running game");
     const isWindows: boolean = os.platform() == "win32";
     const prismLauncherBin = path.join(launcherConfig.path, isWindows ? "prismlauncher.exe" : "PrismLauncher");
     const child = spawn(prismLauncherBin, ["-l", clientId], {detached: true, stdio: "ignore"});
