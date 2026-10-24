@@ -70,17 +70,16 @@ async function installMinGit_win32(): Promise<void> {
         ""
     );
 
-    if (!await isDirectoryExists(mingitPath)) {
-        await smStatus.resetValue();
-    } else if (await smStatus.readValue() === MingitState.fullyInstalled) {
-        //mingit installed
-        return;
-    }
-
-    console.log("Installing git");
-
     while (true) {
+        //error state's
+        if (!await isDirectoryExists(mingitPath)) {
+            await smStatus.resetValue();
+        }
+
+        if (await smStatus.readValue() === MingitState.fullyInstalled) break;
+
         if (await smStatus.readValue() === MingitState.creatingDir) {
+            console.log("Installing mingit");
             //cleanup
             if (await isDirectoryExists(mingitPath)) {
                 await rmdir(mingitPath);
@@ -89,7 +88,7 @@ async function installMinGit_win32(): Promise<void> {
             await smStatus.writeValue(MingitState.archiveDownloading);
         }
         if (await smStatus.readValue() === MingitState.archiveDownloading) {
-            const mingitArchiveURL: URL = new URL(mainConfig.urls.mingitWin32Archive);
+            const mingitArchiveURL: URL = new URL(mainConfig.urls.win32.mingitArchive);
             const mingitArchivePath = await asyncRetryWrapper<string>(
                 () => downloadFile(mingitArchiveURL, getTempPath()),
                 {shouldRetryError: isNetworkError}
@@ -115,7 +114,6 @@ async function installMinGit_win32(): Promise<void> {
             await smStatus.writeValue(MingitState.cleanup);
         }
         if (await smStatus.readValue() == MingitState.cleanup) {
-            console.log("Cleanup");
             const mingitArchivePath = await smMingitArchivePath.readValue();
             if (mingitArchivePath != smMingitArchivePath.defaultValue) {
                 await rm(mingitArchivePath, {recursive: false, force: true});
@@ -126,5 +124,4 @@ async function installMinGit_win32(): Promise<void> {
             break;
         }
     }
-
 }

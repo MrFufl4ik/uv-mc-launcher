@@ -21,11 +21,13 @@ export type ZClientT = z.infer<typeof ClientSchema>;
 
 export const MainSchema = z.object({
     urls: z.object({
-        launcherArchive: z.string(), //todo split win32 and posix
-        mingitWin32Archive: z.string()
-    }).default({
-        launcherArchive: "https://github.com/Diegiwg/PrismLauncher-Cracked/releases/download/11.0.3/PrismLauncher-Linux-Qt6-Portable-11.0.3.tar.gz",
-        mingitWin32Archive: "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.1/MinGit-2.56.0-64-bit.zip"
+        linux: z.object({
+            launcherArchive: z.string()
+        }),
+        win32: z.object({
+            launcherArchive: z.string(),
+            mingitArchive: z.string()
+        }),
     }),
     account: z.object({
         name: z.string(),
@@ -33,19 +35,11 @@ export const MainSchema = z.object({
     }),
     clients: z.array(
         ClientSchema
-    ).default([{id: "client", displayName: "Default"}]),
+    ),
     run: z.object({
         clientId: z.string()
     })
 });
-
-// async function createConfig() {
-//     await writeFile(
-//         configPath,
-//         YAML.stringify(MainSchema.parse({})),
-//         "utf8"
-//     );
-// }
 
 const configPath = path.join(process.cwd(), "config.yaml");
 if (!await isFileExists(configPath)){

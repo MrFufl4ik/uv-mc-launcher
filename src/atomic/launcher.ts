@@ -13,21 +13,23 @@ import {SMSimpleVar, StateMachine} from "../api/statemachine.js";
 import {getTempPath} from "../api/temp.js";
 import * as MainConfig from "../api/main-config.js";
 import {downloadFile} from "../api/response.js";
-
-const mainConfig = await MainConfig.get();
-
-export const launcherConfig = {
-    path: path.join(process.cwd(), "launcher"),
-    archiveUrl: new URL(mainConfig.urls.launcherArchive),
-    defaultConfigsPath: path.join(process.cwd(), "default-launcher-configs")
-};
+import os from "node:os";
 
 const launcherStateMachine = new StateMachine("launcher");
+const mainConfig = await MainConfig.get();
+
+export const launcherPath = path.join(process.cwd(), "launcher");
+const defaultConfigsPath = path.join(process.cwd(), "default-launcher-configs");
 
 export async function launcherEntry() {
     await installLauncher();
 }
 
+function getCrossPlatformLauncherArchiveURL(): URL {
+    if (os.platform() === "linux") return new URL(mainConfig.urls.linux.launcherArchive);
+    else if (os.platform() === "win32") return new URL(mainConfig.urls.win32.launcherArchive);
+    process.exit(1); // impossible state
+}
 
 async function installLauncher() {
     const enum LauncherState {
@@ -42,18 +44,16 @@ async function installLauncher() {
     const smStatus = new SMSimpleVar<string>(launcherStateMachine, "status", LauncherState.creatingDir);
     const smLauncherArchivePath = new SMSimpleVar<string>(launcherStateMachine, "archiveFileName", "");
 
-    const launcherPath = launcherConfig.path;
-    if (!await isDirectoryExists(launcherPath)) {
-        await smStatus.resetValue();
-    } else if (await smStatus.readValue() === LauncherState.fullyInstalled) {
-        console.log("Launcher already installed. Skipping...");
-        return;
-    }
-
-    console.log("Installing launcher");
-
     while (true) {
+        //error state's
+        if (!await isDirectoryExists(launcherPath)) {
+            await smStatus.resetValue();
+        }
+
+        if (await smStatus.readValue() === LauncherState.fullyInstalled) break;
+
         if (await smStatus.readValue() === LauncherState.creatingDir) {
+            console.log("Installing launcher");
             //cleanup
             if (await isDirectoryExists(launcherPath)) {
                 await rmdir(launcherPath);
@@ -62,9 +62,8 @@ async function installLauncher() {
             await smStatus.writeValue(LauncherState.archiveDownloading);
         }
         if (await smStatus.readValue() === LauncherState.archiveDownloading) {
-            const launcherArchiveURL: URL = new URL(launcherConfig.archiveUrl);
             const launcherArchivePath = await asyncRetryWrapper<string>(
-                () => downloadFile(launcherArchiveURL, getTempPath()),
+                () => downloadFile(getCrossPlatformLauncherArchiveURL(), getTempPath()),
                 {shouldRetryError: isNetworkError}
             );
             await smLauncherArchivePath.writeValue(launcherArchivePath);
@@ -90,7 +89,7 @@ async function installLauncher() {
         if (await smStatus.readValue() === LauncherState.defaultConfigsInstalling) {
             console.log("Installing default configs");
             await cp(
-                launcherConfig.defaultConfigsPath, launcherConfig.path,
+                defaultConfigsPath, launcherPath,
                 {recursive: true, force: true}
             );
             await smStatus.writeValue(LauncherState.cleanup);

@@ -54,7 +54,7 @@ export async function isSymlinkExists(path: string): Promise<boolean> {
 }
 
 export async function isEntryExists(path: string): Promise<boolean> {
-    return isDirectoryExists(path) || isFileExists(path);
+    return await isDirectoryExists(path) || await isFileExists(path);
 }
 
 

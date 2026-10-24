@@ -5,7 +5,7 @@ import {SMSimpleSequenceVar, StateMachine} from "../api/statemachine.js";
 import type {ZClientT} from "../api/main-config.js";
 import * as MainConfig from "../api/main-config.js";
 import {exitWithPause} from "../index.js";
-import {getGitBinary} from "../api/git.js";
+import {getCrossPlatformGitBinary} from "../api/git.js";
 import {type SimpleGit, simpleGit, type SimpleGitProgressEvent} from "simple-git";
 import type {SingleBar} from "cli-progress";
 
@@ -75,7 +75,7 @@ async function initGitForClient(clientId: string, gitConfig: GitConfig) {
     const clientGitPath = path.join(clientPath, ".git");
 
     while (true) {
-        //error state
+        //error state's
         if (!await isDirectoryExists(clientPath)) {
             await smStatus.resetValue();
         } else if (!await isDirectoryExists(clientGitPath)) {
@@ -89,6 +89,7 @@ async function initGitForClient(clientId: string, gitConfig: GitConfig) {
         if (await smStatus.readValue() === GitInitStatus.done) break;
 
         if (await smStatus.readValue() === GitInitStatus.creatingDir) {
+            console.log("Initializing local git repo")
             if (await isDirectoryExists(clientPath)) {
                 await smStatus.writeValue(GitInitStatus.gitInit);
                 continue;
@@ -103,7 +104,7 @@ async function initGitForClient(clientId: string, gitConfig: GitConfig) {
             }
             await smStatus.writeValue(GitInitStatus.workOnGitInit);
             console.log("Initialising local git repository");
-            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const gitInstance = simpleGit({binary: getCrossPlatformGitBinary(), baseDir: clientPath});
             await gitInstance.init();
             await gitInstance.addRemote(gitConfig.remote, gitConfig.repository);
             await gitInstance.branch(['-M', gitConfig.branch]);
@@ -201,7 +202,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
                 .from(`x-access-token:${gitConfig.authKey}`)
                 .toString('base64')}`;
             const gitInstance = simpleGit({
-                binary: getGitBinary(),
+                binary: getCrossPlatformGitBinary(),
                 baseDir: clientPath,
                 progress(data: SimpleGitProgressEvent) {
                     if (pBar === undefined && data.progress === 1) {
@@ -225,7 +226,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
         }
 
         if (await smStatus.readValue() === UpdateStatus.headsChecking) {
-            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const gitInstance = simpleGit({binary: getCrossPlatformGitBinary(), baseDir: clientPath});
             const remoteHead = await gitResolveRef(gitInstance, remoteRef);
             const localHead = await gitResolveRef(gitInstance, localRef);
             if (!remoteHead) throw new Error(`No remote ref of ${remoteRef}`);
@@ -256,7 +257,11 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
             const httpExtraHeader = `http.extraHeader=Authorization: Basic ${Buffer
                 .from(`x-access-token:${gitConfig.authKey}`)
                 .toString('base64')}`;
-            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath, config: [httpExtraHeader]});
+            const gitInstance = simpleGit({
+                binary: getCrossPlatformGitBinary(),
+                baseDir: clientPath,
+                config: [httpExtraHeader]}
+            );
             const localHead = await gitResolveRef(gitInstance, localRef);
 
             await gitInstance.pull(gitConfig.remote, gitConfig.branch);
@@ -273,7 +278,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
                 continue;
             }
 
-            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const gitInstance = simpleGit({binary: getCrossPlatformGitBinary(), baseDir: clientPath});
             const localHead = await gitResolveRef(gitInstance, localRef);
             if (localHead === null) throw new Error("Corrupted git local repository!");
 
@@ -302,7 +307,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
                 await smStatus.resetValue();
                 continue;
             }
-            const gitInstance = simpleGit({binary: getGitBinary(), baseDir: clientPath});
+            const gitInstance = simpleGit({binary: getCrossPlatformGitBinary(), baseDir: clientPath});
             const localHead = await gitResolveRef(gitInstance, localRef);
             if (localHead === null) throw new Error("Corrupted git local repository!");
 

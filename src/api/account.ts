@@ -4,7 +4,7 @@ import {isFileExists, unixTimestamp} from "./misc.js";
 import {z} from "zod";
 import {getTempPath} from "./temp.js";
 import {createUuid128, uuid128FromUsername} from "./minecraft/uuid.js";
-import {launcherConfig} from "../atomic/launcher.js";
+import {launcherPath} from "../atomic/launcher.js";
 
 enum AccountType {
     online = "Online",
@@ -65,9 +65,8 @@ export class Account {
     }
 }
 
-
 function getJsonAccountsFilePath() {
-    return path.join(launcherConfig.path, "accounts.json");
+    return path.join(launcherPath, "accounts.json");
 }
 
 async function readAccountsJson(): Promise<JSON | undefined> {

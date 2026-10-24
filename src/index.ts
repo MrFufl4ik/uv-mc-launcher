@@ -8,6 +8,7 @@ import {requirementsEntry} from "./atomic/requirements.js";
 import * as readlineSync from "readline-sync";
 import {accountsEntry} from "./atomic/account.js";
 import {runGameEntry} from "./atomic/run-game.js";
+import os from "node:os";
 
 async function main() {
     await requirementsEntry();
@@ -47,6 +48,15 @@ export function exitWithPause(code: number, err?: any): never {
     //todo dev mode
     if (err !== undefined) throw err;
     process.exit(code);
+}
+
+//do not delete this
+if (["linux", "win32"].includes(os.platform())){
+    console.log(
+        "This software was not developed for your platform. " +
+        "If you want to use your platform, you can modify the software for your platform and " +
+        "submit a PR to https://github.com/mrfufl4ik/uv-mc-launcher. TY :)"
+    )
 }
 
 await mainWithLock();
