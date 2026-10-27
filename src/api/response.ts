@@ -3,6 +3,7 @@ import {Readable, Transform} from "node:stream";
 import {pipeline} from "node:stream/promises";
 import {createWriteStream} from "node:fs";
 import path from "node:path";
+import {trSingle} from "./console/translation.js";
 
 export function getFileNameFromDownloadResponse(response: Response): string | undefined {
     const contentDisposition = response.headers.get("content-disposition");
@@ -56,18 +57,18 @@ export async function downloadFile(url: URL, destinationPath: string) {
         throw new Error("Response body is empty");
     }
     const totalBytes = Number(response.headers.get("content-length"));
-    if (totalBytes === 0){
+    if (totalBytes === 0) {
         throw new Error("Response body is empty");
     }
 
     const fileName = getFileNameFromDownloadResponse(response);
-    if (fileName === undefined){
-        throw new Error("Failed to retrieve the file name")
+    if (fileName === undefined) {
+        throw new Error("Failed to retrieve the file name");
     }
 
     console.log(`Download file ${fileName} to ${destinationPath}`);
 
-    const bar = createProgressBar("Downloading", "MB");
+    const bar = createProgressBar(trSingle.getTranslation().progressBars.download, "MB");
     bar.start(
         totalBytes ? Math.round(totalBytes / 1024 / 1024) : 0,
         0
@@ -98,5 +99,5 @@ export async function downloadFile(url: URL, destinationPath: string) {
         bar.stop();
     }
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
-    return resultPath
+    return resultPath;
 }

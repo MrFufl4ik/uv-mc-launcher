@@ -19,9 +19,13 @@ Download and extract latest archive from [latest release](https://github.com/MrF
 ### Configuration file
 ```yaml
 # config.yaml
+language: "en_US" # so far, it’s not doing anything.
 urls:
-  launcherArchive: "https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/PrismLauncher-Linux-Qt6-Portable-11.1.1.tar.gz"
-  mingitWin32Archive: "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.1/MinGit-2.56.0-64-bit.zip"
+  linux:
+    launcherArchive: "https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/PrismLauncher-Linux-Qt6-Portable-11.1.1.tar.gz"
+  win32:
+    launcherArchive: "https://github.com/PrismLauncher/PrismLauncher/releases/download/11.1.1/PrismLauncher-Windows-MinGW-w64-Portable-11.1.1.zip"
+    mingitArchive: "https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.1/MinGit-2.56.0-64-bit.zip"
 account:
   name: "MinecraftPlayer1"
   id: "super-default-id" # optional, define specific player id. can be find in /launcher/accounts.json.

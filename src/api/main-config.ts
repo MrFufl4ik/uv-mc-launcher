@@ -2,8 +2,9 @@ import {readFile, writeFile} from "node:fs/promises";
 import path from "node:path";
 import {z} from "zod";
 import YAML from "yaml";
-import {ConsoleOpts, isFileExists} from "./misc.js";
+import {isFileExists} from "./misc.js";
 import {exitWithPause} from "../index.js";
+import {trSingle} from "./console/translation.js";
 
 export const ClientSchema = z.object({
     id: z.string(),
@@ -15,11 +16,12 @@ export const ClientSchema = z.object({
         userName: z.string(),
         authKey: z.string(),
     }).optional()
-})
+});
 
 export type ZClientT = z.infer<typeof ClientSchema>;
 
 export const MainSchema = z.object({
+    language: z.string(),
     urls: z.object({
         linux: z.object({
             launcherArchive: z.string()
@@ -42,8 +44,8 @@ export const MainSchema = z.object({
 });
 
 const configPath = path.join(process.cwd(), "config.yaml");
-if (!await isFileExists(configPath)){
-    console.log(`${ConsoleOpts.yellow}Please create a config.yaml file!${ConsoleOpts.reset}`)
+if (!await isFileExists(configPath)) {
+    console.log(trSingle.getTranslation().errors.mainConfigNotCreated);
     exitWithPause(1);
 }
 

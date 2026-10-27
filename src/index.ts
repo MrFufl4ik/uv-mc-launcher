@@ -1,23 +1,20 @@
-import {clientEntry} from "./atomic/client.js";
-import {launcherEntry} from "./atomic/launcher.js";
-import {writeFile} from "node:fs/promises";
-import path from "node:path";
 import lockfile from 'proper-lockfile';
-import {ConsoleOpts, sleep} from "./api/misc.js";
-import {requirementsEntry} from "./atomic/requirements.js";
+import path from "node:path";
+import os from "node:os";
+import {writeFile} from "node:fs/promises";
 import * as readlineSync from "readline-sync";
+import {sleep} from "./api/misc.js";
+import {launcherEntry} from "./atomic/launcher.js";
+import {requirementsEntry} from "./atomic/requirements.js";
+import {clientEntry} from "./atomic/client.js";
 import {accountsEntry} from "./atomic/account.js";
 import {runGameEntry} from "./atomic/run-game.js";
-import os from "node:os";
+import {trSingle} from "./api/console/translation.js";
 
-async function main() {
-    await requirementsEntry();
-    await launcherEntry();
-    await clientEntry();
-    await accountsEntry();
-    await runGameEntry();
-    console.log(`${ConsoleOpts.green}All operation's done!${ConsoleOpts.reset}`);
-    sleep(1000 * 3);
+export function exitWithPause(code: number, err?: any): never {
+    readlineSync.question(trSingle.getTranslation().exit.pressEnterToExit);
+    if (err !== undefined) throw err;
+    process.exit(code);
 }
 
 async function mainWithLock() {
@@ -30,11 +27,10 @@ async function mainWithLock() {
         await main();
     } catch (err: any) {
         if ("code" in err && err.code === 'ELOCKED') {
-            console.log('Application already started!');
+            console.log(trSingle.getTranslation().errors.applicationAlreadyStarted);
             process.exit(1);
         }
-        //todo dev mode
-        console.log(`${ConsoleOpts.red}Runtime error (contact to developer):${ConsoleOpts.reset} "${err}"`);
+        console.log(trSingle.getTranslation().exit.runtimeError + ` "${err}"`);
         exitWithPause(1, err);
     } finally {
         if (release) {
@@ -43,20 +39,20 @@ async function mainWithLock() {
     }
 }
 
-export function exitWithPause(code: number, err?: any): never {
-    readlineSync.question("Press Enter to exit...");
-    //todo dev mode
-    if (err !== undefined) throw err;
-    process.exit(code);
+async function main() {
+    await requirementsEntry();
+    await launcherEntry();
+    await clientEntry();
+    await accountsEntry();
+    await runGameEntry();
+    console.log(trSingle.getTranslation().exit.successfulExit);
+    sleep(1000 * 3);
 }
 
-//do not delete this
-if (["linux", "win32"].includes(os.platform())){
-    console.log(
-        "This software was not developed for your platform. " +
-        "If you want to use your platform, you can modify the software for your platform and " +
-        "submit a PR to https://github.com/mrfufl4ik/uv-mc-launcher. TY :)"
-    )
+
+if (!["linux", "win32"].includes(os.platform())) {
+    console.log(trSingle.getTranslation().errors.notSupportedPlatform);
+    process.exit(1);
 }
 
 await mainWithLock();

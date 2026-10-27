@@ -9,25 +9,25 @@ import {
     getAccountsByName,
     isValidUsername
 } from "../api/account.js";
+import {formatString} from "../api/console/formating.js";
+import {trSingle} from "../api/console/translation.js";
 
 export async function accountsEntry() {
     const mainConfig = await MainConfig.get();
     if (!isValidUsername(mainConfig.account.name)) {
-        console.log(`${ConsoleOpts.yellow}Account name "${mainConfig.account.name}" is not valid!${ConsoleOpts.yellow}`);
+        console.log(formatString(trSingle.getTranslation().errors.invalidAccountName, mainConfig.account.name));
         exitWithPause(1);
     }
     const account = await findUserAccount(mainConfig.account.name, mainConfig.account.id);
     if (account != undefined) {
         try {
             await activeAccount(account);
-            console.log(`Account ${account?.name} activate!`);
-        } catch {
-            console.log(`Account already ${account?.name} activate!`);
-        }
+            console.log(formatString(trSingle.getTranslation().account.activate, account.name));
+        } catch {}
     } else {
         const newAccount = await createOfflineAccount(mainConfig.account.name);
         await activeAccount(newAccount);
-        console.log(`New account ${newAccount.name} created!`);
+        console.log(formatString(trSingle.getTranslation().account.newAccountCreated), newAccount.name);
     }
     console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }

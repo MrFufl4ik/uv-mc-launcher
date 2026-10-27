@@ -5,6 +5,8 @@ import path, {basename} from "node:path";
 import {exitWithPause} from "../index.js";
 import {pipeline} from "node:stream/promises";
 import fs from "fs";
+import {trSingle} from "./console/translation.js";
+import {formatString} from "./console/formating.js";
 
 const validArchiveSuffixes = [".tar.gz", ".zip"];
 
@@ -13,7 +15,7 @@ export async function extractArchive(archivePath: string, destinationPath: strin
     const archiveFileName = basename(archivePath);
     const suffix = getFileSuffix(archiveFileName);
     if (!validArchiveSuffixes.includes(suffix)) {
-        console.log(`${ConsoleOpts.red}Archive ${archiveFileName} cannot be open by this program${ConsoleOpts.reset}`);
+        console.log(formatString(trSingle.getTranslation().errors.archiveCannotOpen, archiveFileName));
         exitWithPause(1);
     }
     switch (suffix) {
@@ -30,7 +32,7 @@ export async function isValidArchive(archivePath: string): Promise<boolean> {
     const archiveFileName = basename(archivePath);
     const suffix = getFileSuffix(archiveFileName);
     if (!validArchiveSuffixes.includes(suffix)){
-        console.log(`${ConsoleOpts.red}Archive ${archiveFileName} cannot be open by this program${ConsoleOpts.reset}`);
+        console.log(formatString(trSingle.getTranslation().errors.archiveCannotOpen, archiveFileName));
         exitWithPause(1);
     }
     if (!await isFileExists(archivePath)) return false;
@@ -53,7 +55,7 @@ async function extractTarball(tarballPath: string, destinationPath: string): Pro
         }
     });
 
-    const bar = createProgressBar("Extracting", "F");
+    const bar = createProgressBar(trSingle.getTranslation().progressBars.extract, "F");
     bar.start(entryCount, 0);
 
     let writeCount = 0;
@@ -88,7 +90,7 @@ async function extractZip(zipPath: string, destinationPath: string): Promise<voi
     const entries = directory.files;
 
     const entryCount = entries.length;
-    const bar = createProgressBar("Extracting", "F");
+    const bar = createProgressBar(trSingle.getTranslation().progressBars.extract, "F");
     bar.start(entryCount, 0);
 
     let writeCount = 0;
