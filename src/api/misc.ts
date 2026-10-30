@@ -1,4 +1,4 @@
-import {readdir, rm, stat, symlink} from "node:fs/promises";
+import {readdir, rm, stat, lstat, symlink} from "node:fs/promises";
 import * as cliProgress from "cli-progress";
 import os from "node:os";
 import {execFile, spawn} from "node:child_process";
@@ -47,7 +47,7 @@ export async function isFileExists(path: string): Promise<boolean> {
 
 export async function isSymlinkExists(path: string): Promise<boolean> {
     try {
-        return (await stat(path)).isSymbolicLink();
+        return (await lstat(path)).isSymbolicLink();
     } catch {
         return false;
     }
@@ -84,7 +84,6 @@ export function getFileSuffix(filename: string): string {
 
 export async function makeSymLink(targetPath: string, linkPath: string) {
     if (os.platform() == "win32") {
-        //todo add make-symlink-win32 to requirement
         const makeSymlinkWin32Binary = path.join(process.cwd(), "make-symlink-win32.exe");
         if (!await isFileExists(makeSymlinkWin32Binary)) {
             console.log(`${makeSymlinkWin32Binary} doesn't exists!`);
@@ -101,9 +100,7 @@ export async function makeSymLink(targetPath: string, linkPath: string) {
                     resolve();
                 } else {
                     reject(
-                        new Error(
-                            `make-symlink-win32.exe failed: code=${code}, signal=${signal}`,
-                        ),
+                        new Error(`make-symlink-win32.exe failed: code=${code}, signal=${signal}`),
                     );
                 }
             });

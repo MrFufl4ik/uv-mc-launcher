@@ -9,6 +9,7 @@ import {getCrossPlatformGitBinary} from "../api/git.js";
 import {type SimpleGit, simpleGit, type SimpleGitProgressEvent} from "simple-git";
 import type {SingleBar} from "cli-progress";
 import {trSingle} from "../api/console/translation.js";
+import {formatString} from "../api/console/formating.js";
 
 const clientStateMachine = new StateMachine("client");
 const mainConfig = await MainConfig.get();
@@ -32,7 +33,8 @@ export async function clientEntry() {
         exitWithPause(1);
     }
     if (client.git === undefined) {
-        console.log(`Git not configured for this client`);
+        //todo if dev mode!
+        console.log(trSingle.getTranslation().dev.client.gitNotConfigured);
         return;
     }
     const gitConfig: GitConfig = {
@@ -108,8 +110,9 @@ async function initGitForClient(clientId: string, gitConfig: GitConfig) {
             await gitInstance.init();
             await gitInstance.addRemote(gitConfig.remote, gitConfig.repository);
             await gitInstance.branch(['-M', gitConfig.branch]);
-            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
             await smStatus.writeValue(GitInitStatus.done);
+            console.log(trSingle.getTranslation().base.operationSuccessful);
+            console.log(trSingle.getTranslation().base.gapLine);
         }
     }
 
@@ -139,17 +142,16 @@ async function gitExecuteUpdateEntry(
 function successUpdateMessage(localHead: string | null, remoteHead: string) {
     const localVer = localHead ? localHead.slice(0, 7) : "init state";
     const remoteVer = remoteHead.slice(0, 7);
-    console.log(
-        "Client updated" + " " +
-        `${ConsoleOpts.cyan}"${localVer}"${ConsoleOpts.reset}` +
-        " -> " +
-        `${ConsoleOpts.cyan}"${remoteVer}"${ConsoleOpts.reset}`
-    );
+    console.log(formatString(
+        trSingle.getTranslation().client.programUpdated,
+        localVer,
+        remoteVer
+    ));
+    console.log(trSingle.getTranslation().base.operationSuccessful);
+    console.log(trSingle.getTranslation().base.gapLine);
 }
 
 async function updateClient(clientId: string, gitConfig: GitConfig) {
-    console.log(trSingle.getTranslation().client.checkToUpDate);
-
     const enum UpdateStatus {
         idle = "idle",
         fetch = "fetch",
@@ -187,6 +189,7 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
         []
     );
 
+    console.log(trSingle.getTranslation().client.checkToUpDate);
 
     const remoteRef = `refs/remotes/origin/${gitConfig.branch}`;
     const localRef = `refs/heads/${gitConfig.branch}`;
@@ -232,7 +235,8 @@ async function updateClient(clientId: string, gitConfig: GitConfig) {
             if (!remoteHead) throw new Error(`No remote ref of ${remoteRef}`);
 
             if (localHead === remoteHead) {
-                console.log(trSingle.getTranslation().client.programUpToDate);
+                console.log(trSingle.getTranslation().client.programAlreadyUpToDate);
+                console.log(trSingle.getTranslation().base.gapLine);
                 await smStatus.resetValue();
                 break;
             }

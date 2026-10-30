@@ -2,6 +2,17 @@ import {z} from "zod";
 import {colorizeString} from "./formating.js";
 
 const TranslationSchema = z.object({
+    base: z.object({
+        gapLine: z.string(),
+        operationSuccessful: z.string(),
+        download: z.string(),
+        extract: z.string()
+    }),
+    dev: z.object({
+        client: z.object({
+            gitNotConfigured: z.string()
+        })
+    }),
     exit: z.object({
         pressEnterToExit: z.string(),
         successfulExit: z.string(),
@@ -27,13 +38,39 @@ const TranslationSchema = z.object({
     client: z.object({
         checkToUpDate: z.string(),
         initLocalRepo: z.string(),
-        programUpToDate: z.string()
+        programUpdated: z.string(),
+        programAlreadyUpToDate: z.string()
+    }),
+    launcher: z.object({
+        installingLauncher: z.string(),
+        installingDefaultConfigs: z.string()
+    }),
+    requirements: z.object({
+        pleaseInstallGit: z.string(),
+        installingMingit: z.string()
+    }),
+    runGame: z.object({
+        makingPrismLauncherInstance: z.string(),
+        fileForClientNotFound: z.string(),
+        entryFoundedInInstances: z.string(),
+        runningGame: z.string()
     })
 }).default({
+    base: {
+        gapLine: "<gray>-----------------------</gray>",
+        operationSuccessful: "<green>Operation complete successful</green>",
+        download: "Download file %s to %s",
+        extract: "Extracting archive %s to %s",
+    },
+    dev: {
+        client: {
+            gitNotConfigured: "<yellow><underline>Git not configured for this client!</underline></yellow>"
+        }
+    },
     exit: {
         pressEnterToExit: "Press Enter to exit...",
-        successfulExit: "<green>All operation's done successful!</green>",
-        runtimeError: "<red>Runtime error (contact to developer):</red>",
+        successfulExit: "<bold>All operation's complete, exit...</bold>",
+        runtimeError: `<red>Runtime error (contact to developer):</red> "%s"`,
     },
     errors: {
         applicationAlreadyStarted: "<red>Application already started!</red>",
@@ -56,9 +93,24 @@ const TranslationSchema = z.object({
         newAccountCreated: "New account %s created",
     },
     client: {
-        checkToUpDate: "Start checking client for updates",
-        initLocalRepo: "Initializing local repository",
-        programUpToDate: "<green>Client is already up to date</green>",
+        checkToUpDate: "Start checking client for updates process",
+        initLocalRepo: "Start initializing local repository",
+        programUpdated: `Client updated <cyan>"%s"</cyan> -> <cyan>%s</cyan>`,
+        programAlreadyUpToDate: "<green>Client is already up to date</green>",
+    },
+    launcher: {
+        installingLauncher: "Start installing launcher process",
+        installingDefaultConfigs: "Installing default configs",
+    },
+    requirements: {
+        pleaseInstallGit: "Install git (version control program). And add it to path.",
+        installingMingit: "Start installing mingit process",
+    },
+    runGame: {
+        makingPrismLauncherInstance: "Making prism launcher instance",
+        fileForClientNotFound: `<red>Files for client: "%S" not found!</red>`,
+        entryFoundedInInstances: `<yellow>Entry "%s" founded in instances place. Symlink will not be created!</yellow>`,
+        runningGame: "Running game",
     }
 });
 

@@ -11,8 +11,8 @@ import {formatString} from "./console/formating.js";
 const validArchiveSuffixes = [".tar.gz", ".zip"];
 
 export async function extractArchive(archivePath: string, destinationPath: string): Promise<void> {
-    console.log(`Extracting archive ${archivePath} to ${destinationPath}`);
     const archiveFileName = basename(archivePath);
+    console.log(formatString(trSingle.getTranslation().base.extract, archiveFileName, destinationPath));
     const suffix = getFileSuffix(archiveFileName);
     if (!validArchiveSuffixes.includes(suffix)) {
         console.log(formatString(trSingle.getTranslation().errors.archiveCannotOpen, archiveFileName));
@@ -70,7 +70,6 @@ async function extractTarball(tarballPath: string, destinationPath: string): Pro
         }
     });
     bar.stop();
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function isValidTarball(tarballPath: string): Promise<boolean> {
@@ -124,8 +123,6 @@ async function extractZip(zipPath: string, destinationPath: string): Promise<voi
     }
 
     bar.stop();
-
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function isValidZip(zipPath: string): Promise<boolean> {

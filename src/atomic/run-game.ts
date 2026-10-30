@@ -7,6 +7,8 @@ import * as MainConfig from "../api/main-config.js";
 import {exitWithPause} from "../index.js";
 import {getClientPath} from "./client.js";
 import {launcherPath} from "./launcher.js";
+import {trSingle} from "../api/console/translation.js";
+import {formatString} from "../api/console/formating.js";
 
 const mainConfig = await MainConfig.get();
 
@@ -25,31 +27,33 @@ function getCrossPlatformPrismLauncherBinary(): string{
 }
 
 async function makePrismInstance(clientId: string) {
-    console.log("Making prism launcher instance");
     const prismLauncherInstancesPath = path.join(launcherPath, "instances");
     if (!await isDirectoryExists(prismLauncherInstancesPath)) {
         await mkdir(prismLauncherInstancesPath, {recursive: false});
     }
     const localInstancePath = getClientPath(clientId);
     if (!await isDirectoryExists(localInstancePath)) {
-        console.log(`${ConsoleOpts.yellow}Files for client: "${clientId}" not found!${ConsoleOpts.reset}`);
+        console.log(formatString(trSingle.getTranslation().runGame.fileForClientNotFound, clientId));
         exitWithPause(1);
     }
     const linkedInstancePath = path.join(prismLauncherInstancesPath, clientId);
     if (!await isSymlinkExists(linkedInstancePath)) {
         if (!await isEntryExists(linkedInstancePath)) {
+            console.log(trSingle.getTranslation().runGame.makingPrismLauncherInstance);
             await makeSymLink(localInstancePath, linkedInstancePath);
+            console.log(trSingle.getTranslation().base.operationSuccessful);
+            console.log(trSingle.getTranslation().base.gapLine);
         } else {
-            console.log(`${ConsoleOpts.yellow}Entry "${clientId}" founded in instances place. Symlink will not be created!${ConsoleOpts.reset}`);
+            console.log(formatString(trSingle.getTranslation().runGame.entryFoundedInInstances, clientId));
         }
     }
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function runClient(clientId: string) {
-    console.log("Running game");
+    console.log(trSingle.getTranslation().runGame.runningGame);
     const prismLauncherBin = getCrossPlatformPrismLauncherBinary();
     const child = spawn(prismLauncherBin, ["-l", clientId], {detached: true, stdio: "ignore"});
     child.unref();
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
+    console.log(trSingle.getTranslation().base.operationSuccessful);
+    console.log(trSingle.getTranslation().base.gapLine);
 }

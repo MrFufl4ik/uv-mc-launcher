@@ -14,6 +14,7 @@ import {getTempPath} from "../api/temp.js";
 import * as MainConfig from "../api/main-config.js";
 import {downloadFile} from "../api/response.js";
 import os from "node:os";
+import {trSingle} from "../api/console/translation.js";
 
 const launcherStateMachine = new StateMachine("launcher");
 const mainConfig = await MainConfig.get();
@@ -53,7 +54,7 @@ async function installLauncher() {
         if (await smStatus.readValue() === LauncherState.fullyInstalled) break;
 
         if (await smStatus.readValue() === LauncherState.creatingDir) {
-            console.log("Installing launcher");
+            console.log(trSingle.getTranslation().launcher.installingLauncher);
             //cleanup
             if (await isDirectoryExists(launcherPath)) {
                 await rmdir(launcherPath);
@@ -87,7 +88,7 @@ async function installLauncher() {
             await smStatus.writeValue(LauncherState.defaultConfigsInstalling);
         }
         if (await smStatus.readValue() === LauncherState.defaultConfigsInstalling) {
-            console.log("Installing default configs");
+            console.log(trSingle.getTranslation().launcher.installingDefaultConfigs);
             await cp(
                 defaultConfigsPath, launcherPath,
                 {recursive: true, force: true}
@@ -95,14 +96,14 @@ async function installLauncher() {
             await smStatus.writeValue(LauncherState.cleanup);
         }
         if (await smStatus.readValue() == LauncherState.cleanup) {
-            console.log("Cleanup");
             const launcherArchivePath = await smLauncherArchivePath.readValue();
             if (launcherArchivePath != smLauncherArchivePath.defaultValue) {
                 await rm(launcherArchivePath, {recursive: false, force: true});
             }
             await smStatus.writeValue(LauncherState.fullyInstalled);
             await smLauncherArchivePath.resetValue();
-            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
+            console.log(trSingle.getTranslation().base.operationSuccessful);
+            console.log(trSingle.getTranslation().base.gapLine);
             break;
         }
     }

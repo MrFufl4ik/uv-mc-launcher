@@ -16,6 +16,7 @@ import {downloadFile} from "../api/response.js";
 import {getTempPath} from "../api/temp.js";
 import {extractArchive, isValidArchive} from "../api/archive.js";
 import * as MainConfig from "../api/main-config.js";
+import {trSingle} from "../api/console/translation.js";
 
 const mainConfig = await MainConfig.get();
 
@@ -26,7 +27,7 @@ const requirementsStateMachine = new StateMachine("requirements");
 export async function requirementsEntry(): Promise<void> {
     if (os.platform() != "win32") {
         if (!await isGitInstalled()) {
-            console.log(`${ConsoleOpts.yellow}Install git (version control program). And add it to path.${ConsoleOpts.reset}`);
+            console.log(trSingle.getTranslation().requirements.pleaseInstallGit);
             exitWithPause(1);
         }
     } else {
@@ -79,7 +80,7 @@ async function installMinGit_win32(): Promise<void> {
         if (await smStatus.readValue() === MingitState.fullyInstalled) break;
 
         if (await smStatus.readValue() === MingitState.creatingDir) {
-            console.log("Installing mingit");
+            console.log(trSingle.getTranslation().requirements.installingMingit);
             //cleanup
             if (await isDirectoryExists(mingitPath)) {
                 await rmdir(mingitPath);
@@ -120,7 +121,8 @@ async function installMinGit_win32(): Promise<void> {
             }
             await smStatus.writeValue(MingitState.fullyInstalled);
             await smMingitArchivePath.resetValue();
-            console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
+            console.log(trSingle.getTranslation().base.operationSuccessful);
+            console.log(trSingle.getTranslation().base.gapLine);
             break;
         }
     }

@@ -4,6 +4,7 @@ import {pipeline} from "node:stream/promises";
 import {createWriteStream} from "node:fs";
 import path from "node:path";
 import {trSingle} from "./console/translation.js";
+import {formatString} from "./console/formating.js";
 
 export function getFileNameFromDownloadResponse(response: Response): string | undefined {
     const contentDisposition = response.headers.get("content-disposition");
@@ -66,7 +67,7 @@ export async function downloadFile(url: URL, destinationPath: string) {
         throw new Error("Failed to retrieve the file name");
     }
 
-    console.log(`Download file ${fileName} to ${destinationPath}`);
+    console.log(formatString(trSingle.getTranslation().base.download, fileName, destinationPath));
 
     const bar = createProgressBar(trSingle.getTranslation().progressBars.download, "MB");
     bar.start(
@@ -98,6 +99,5 @@ export async function downloadFile(url: URL, destinationPath: string) {
     } finally {
         bar.stop();
     }
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
     return resultPath;
 }

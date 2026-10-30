@@ -23,13 +23,16 @@ export async function accountsEntry() {
         try {
             await activeAccount(account);
             console.log(formatString(trSingle.getTranslation().account.activate, account.name));
+            console.log(trSingle.getTranslation().client.programAlreadyUpToDate);
+            console.log(trSingle.getTranslation().base.gapLine);
         } catch {}
     } else {
         const newAccount = await createOfflineAccount(mainConfig.account.name);
         await activeAccount(newAccount);
         console.log(formatString(trSingle.getTranslation().account.newAccountCreated), newAccount.name);
+        console.log(trSingle.getTranslation().client.programAlreadyUpToDate);
+        console.log(trSingle.getTranslation().base.gapLine);
     }
-    console.log(`${ConsoleOpts.green}Done${ConsoleOpts.reset}`);
 }
 
 async function findUserAccount(name: string, id: string | undefined): Promise<Account | undefined> {

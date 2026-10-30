@@ -10,6 +10,7 @@ import {clientEntry} from "./atomic/client.js";
 import {accountsEntry} from "./atomic/account.js";
 import {runGameEntry} from "./atomic/run-game.js";
 import {trSingle} from "./api/console/translation.js";
+import {formatString} from "./api/console/formating.js";
 
 export function exitWithPause(code: number, err?: any): never {
     readlineSync.question(trSingle.getTranslation().exit.pressEnterToExit);
@@ -30,7 +31,7 @@ async function mainWithLock() {
             console.log(trSingle.getTranslation().errors.applicationAlreadyStarted);
             process.exit(1);
         }
-        console.log(trSingle.getTranslation().exit.runtimeError + ` "${err}"`);
+        console.log(formatString(trSingle.getTranslation().exit.runtimeError, err));
         exitWithPause(1, err);
     } finally {
         if (release) {
